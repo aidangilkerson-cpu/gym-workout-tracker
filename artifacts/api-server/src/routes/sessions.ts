@@ -8,7 +8,7 @@ import { getApplicationAccount } from "../lib/application-account";
 import { sessionFieldErrors } from "../lib/session-validation";
 import {
   listOwnedSessions, getOwnedSession, saveOwnedSession, deleteOwnedSession, setOwnedSessionStar,
-  SessionNotFound, type SessionDatabase,
+  SessionNotFound, SessionConflict, type SessionDatabase,
 } from "../lib/session-store";
 
 export function createSessionsRouter(database: SessionDatabase = db): IRouter {
@@ -24,6 +24,8 @@ export function createSessionsRouter(database: SessionDatabase = db): IRouter {
   function failure(req: Request, res: Response, error: unknown) {
     if (error instanceof SessionNotFound) {
       res.status(404).json({ error: "Session or exercise not found." });
+    } else if (error instanceof SessionConflict) {
+      res.status(409).json({ error: error.message });
     } else {
       req.log.error("Session operation failed");
       res.status(503).json({ error: "We couldn't save or load your session. Please try again." });

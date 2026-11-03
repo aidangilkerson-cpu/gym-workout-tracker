@@ -7,6 +7,8 @@
  */
 
 export * from './appUser';
+export * from './archivePreference';
+export * from './conflictResponse';
 export * from './dashboardData';
 export * from './dashboardExercise';
 export * from './dashboardWorkout';
@@ -21,6 +23,8 @@ export * from './invalidInputResponse';
 export * from './listSessionsParams';
 export * from './listSessionsSort';
 export * from './listSessionsStarredOnly';
+export * from './listWorkoutsIncludeArchived';
+export * from './listWorkoutsParams';
 export * from './notFoundResponse';
 export * from './sessionExerciseInput';
 export * from './sessionExerciseRecord';
@@ -31,5 +35,12 @@ export * from './starPreference';
 export * from './unauthorizedResponse';
 export * from './unavailableResponse';
 export * from './weeklySessions';
+export * from './workoutDetail';
+export * from './workoutExerciseInput';
+export * from './workoutInput';
 export * from './workoutSessionRecord';
+export * from './workoutSummary';
+export * from './workoutUpdateInput';
+export * from './workoutVersionExercise';
+export * from './workoutVersionRecord';
 export * from './workoutVolumePoint';

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import type { SessionInput, WorkoutSessionRecord } from '@workspace/api-client-react';
+import type { SessionInput, WorkoutSessionRecord, WorkoutVersionRecord } from '@workspace/api-client-react';
 import { Plus, Trash2 } from 'lucide-react';
 import { useUnsavedGuard } from '@/hooks/use-unsaved-guard';
 import { ConfirmDialog } from '@/components/confirm-dialog';
@@ -87,13 +87,21 @@ function FieldError({ id, message }: { id: string; message?: string }) {
 type Props = {
   mode: 'create' | 'edit';
   initial?: WorkoutSessionRecord;
+  templateVersion?: WorkoutVersionRecord;
   cancelTo: string;
   onSubmit: (input: SessionInput) => Promise<WorkoutSessionRecord>;
 };
 
-export function SessionForm({ mode, initial, cancelTo, onSubmit }: Props) {
+export function SessionForm({ mode, initial, templateVersion, cancelTo, onSubmit }: Props) {
+  // Keep provenance and the seed together, even if a parent query refreshes.
+  const pinnedTemplate = useRef(templateVersion).current;
   const initialDraft = useMemo<Draft>(
-    () => (initial ? fromRecord(initial) : { workoutName: '', date: today(), notes: '', exercises: [blankExercise()] }),
+    () => (initial ? fromRecord(initial) : {
+      workoutName: pinnedTemplate?.workoutName ?? '', date: today(), notes: '',
+      exercises: pinnedTemplate
+        ? pinnedTemplate.exercises.map(ex => ({ ...blankExercise(), exerciseId: ex.exerciseId, exerciseName: ex.exerciseName }))
+        : [blankExercise()],
+    }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
@@ -150,7 +158,10 @@ export function SessionForm({ mode, initial, cancelTo, onSubmit }: Props) {
     }
     setSaving(true);
     try {
-      const saved = await onSubmit(toInput(draft));
+      const saved = await onSubmit({
+        ...toInput(draft),
+        ...(mode === 'create' && pinnedTemplate ? { workoutVersionId: pinnedTemplate.id } : {}),
+      });
       baseline.current = snapshot(draft);
       guard.go(`/sessions/${saved.id}`);
     } catch (err) {
@@ -175,6 +186,12 @@ export function SessionForm({ mode, initial, cancelTo, onSubmit }: Props) {
       <h1 className="rise mt-3 text-4xl font-black uppercase leading-[0.9] md:text-6xl" style={{ animationDelay: '60ms' }}>
         {mode === 'create' ? 'Log a session.' : 'Fix the record.'}
       </h1>
+      {pinnedTemplate && (
+        <p className="mt-4 rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground" data-testid="text-session-template-version">
+          From {pinnedTemplate.workoutName}, version {pinnedTemplate.versionNumber}.
+          This draft keeps that version even if the workout changes. Nothing is logged until you save.
+        </p>
+      )}
 
       <form ref={formRef} noValidate onSubmit={handleSubmit} className="rise mt-8 space-y-6" style={{ animationDelay: '120ms' }} data-testid="form-session" aria-busy={saving}>
         {hasErrors && (
