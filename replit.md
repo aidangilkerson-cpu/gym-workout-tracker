@@ -1,4 +1,4 @@
-# Gym Workout Tracker
+# LiftLedgr — Gym Workout Tracker
 
 A personal gym training journal built for a school assignment, one feature at a time.
 
@@ -43,6 +43,8 @@ A personal gym training journal built for a school assignment, one feature at a 
 - Workout tables, logging, templates, stars, search, dashboard, and charts belong to later separate features.
 
 ## User preferences
+
+- The user chose the app name **LiftLedgr**, with that exact spelling.
 
 - Work in the exact assignment order, not all features at once. Required features stay in assignment order; the three additional features come last.
 - Each feature follows GitHub Issue → branch from main → build and prompt log → PR → student merges → publish. Stop for user review before opening the current feature PR.

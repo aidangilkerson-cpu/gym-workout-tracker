@@ -29,7 +29,7 @@ export default function Home() {
           <div className="barfill h-full w-[72%] rounded-full bg-primary" style={{ animationDelay: '500ms' }} />
         </div>
         <p className="rise mt-8 max-w-xl text-lg leading-relaxed text-muted-foreground md:text-xl" style={{ animationDelay: '220ms' }}>
-          Setline is a quiet, private place to keep your training honest. Three or four sessions a week adds up — start by claiming your account.
+          LiftLedgr is a quiet, private place to keep your training honest. Three or four sessions a week adds up — start by claiming your account.
         </p>
         <div className="rise mt-10 flex flex-col gap-3 sm:flex-row" style={{ animationDelay: '300ms' }}>
           <Link href="/sign-up" className="group inline-flex h-14 items-center justify-center gap-3 rounded-2xl bg-primary px-7 text-base font-bold text-primary-foreground transition-transform active:scale-[0.98]" data-testid="link-sign-up">
@@ -53,7 +53,7 @@ export default function Home() {
       </main>
 
       <footer className="relative mx-auto max-w-6xl border-t border-border px-5 py-8 font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground md:px-10">
-        Setline — rep by rep
+        LiftLedgr — rep by rep
       </footer>
     </div>
   );

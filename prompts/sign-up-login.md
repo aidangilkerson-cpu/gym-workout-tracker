@@ -90,5 +90,13 @@ available viewport, including minimum-width overrides.
 
 ## Delivery boundary
 
+### Branding revision during review
+
+**Prompt excerpt:** “I like LiftLedgr”
+
+**Decision:** Rename the visible app brand to LiftLedgr, using the exact spelling
+chosen during review. Update the header, homepage copy, footer, browser title, and
+social metadata. Keep the existing feature scope and original plan unchanged.
+
 Implementation and verification only. No feature PR opened, no merge performed,
 and no publishing performed in this build step.
