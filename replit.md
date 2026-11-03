@@ -58,6 +58,7 @@ A personal gym training journal built for a school assignment, one feature at a 
 - Work in the exact assignment order, not all features at once. Required features stay in assignment order; the three additional features come last.
 - Each feature follows GitHub Issue → branch from main → build and prompt log → PR → student merges → publish. Stop for user review before opening the current feature PR.
 - Keep the two assignment-required tests in their own separate GitHub Issues and PRs, distinct from feature PRs. **Why:** the student flagged this assignment requirement; routine feature verification does not replace those separate deliverables.
+- Each required test PR must include its Given/When/Then plain-English explanation, actual intentional-failure and restored-pass screenshots, one sentence describing a change that would break it, and any agent mistake the student caught (what happened, how noticed, how fixed). **Why:** these are explicit assignment evidence requirements, including credit for the student's judgement.
 - Never commit directly to the assignment repository's main branch. The student confirmed instructor approval only for the one-time initialization already completed.
 - Prompt logs must be structured development notes, not a dialogue between the user and agent. Preserve actual prompt and relevant response excerpts for reflection evidence.
 - Keep feature titles free of “extra #” labels.
