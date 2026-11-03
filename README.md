@@ -7,14 +7,18 @@ exception. Planning and feature work follow linked Issues, branches, and pull re
 
 ## Current feature
 
-Features 1 and 2 are merged and published: Clerk accounts and the nine-table
-workout data model.
+Features 1–3 are merged and published: Clerk accounts, the nine-table workout
+data model, and saved workout sessions.
 
-This branch adds **feature 3: session create / read / update / delete** in
-development. Signed-in users can save dated sessions with exercise entries, read
+**Feature 3: session create / read / update / delete.**
+Signed-in users can save dated sessions with exercise entries, read
 their history and session details, edit a session, and delete it after
 confirmation. A session exercise uses one weight in pounds and, for this basic
 editor, a set count with the same reps for every set.
+
+This bug-fix branch changes the weight arrows to **1 lb per click**, preserving
+typed decimal weights. Keyboard ArrowUp/ArrowDown use the same increment.
+The correction is not published until its own PR is reviewed and merged.
 
 The account screen links to `/sessions`; create, detail, and edit routes are
 `/sessions/new`, `/sessions/:id`, and `/sessions/:id/edit`.
@@ -63,6 +67,7 @@ Run the real-development-database API tests:
 
 ```sh
 pnpm --filter @workspace/api-server run test
+pnpm --filter @workspace/gym-tracker exec node --test test/weight-step.test.mjs
 pnpm run typecheck
 ```
 
@@ -70,6 +75,10 @@ The seven routine Vitest + Supertest tests use real PostgreSQL; only provider id
 substituted within the test process. Each fixture rolls back, even on failure.
 There is no test-login header or authentication bypass in the running app.
 Never run fixture tests against production.
+
+The nine focused weight-step checks use Node's built-in test runner and do not
+access the database. They cover one-pound movement, decimal preservation,
+repeated clicks, and the existing input bounds.
 
 These are routine feature-safety checks, not the two separate assignment test
 deliverables. Both required tests come at the very end, after all 10 app features
