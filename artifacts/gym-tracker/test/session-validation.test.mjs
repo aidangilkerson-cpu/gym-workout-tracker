@@ -7,8 +7,7 @@ const draft = () => ({
   date: '2026-11-02',
   notes: '',
   exercises: [{
-    exerciseName: 'Bench press', weightLb: '135.25', setCount: '2', reps: '8',
-    originalReps: null, setsTouched: true,
+    exerciseName: 'Bench press', weightLb: '135.25', sets: [{ reps: '8' }, { reps: '6' }],
   }],
 });
 
@@ -16,7 +15,7 @@ test('a valid draft accepts decimal weights, unweighted exercises, and zero reps
   assert.deepEqual(validateSessionDraft(draft()), {});
   const data = draft();
   data.exercises[0].weightLb = '0';
-  data.exercises[0].reps = '0';
+  data.exercises[0].sets[0].reps = '0';
   assert.deepEqual(validateSessionDraft(data), {});
 });
 
@@ -24,9 +23,9 @@ test('blank or whitespace-only required values get field-specific guidance', () 
   const data = draft();
   data.workoutName = ' ';
   data.date = '';
-  Object.assign(data.exercises[0], { exerciseName: ' ', weightLb: '', setCount: '', reps: '' });
+  Object.assign(data.exercises[0], { exerciseName: ' ', weightLb: '', sets: [{ reps: '' }] });
   const errors = validateSessionDraft(data);
-  for (const path of ['workoutName', 'date', 'exercises.0.exerciseName', 'exercises.0.weightLb', 'exercises.0.sets', 'exercises.0.reps']) {
+  for (const path of ['workoutName', 'date', 'exercises.0.exerciseName', 'exercises.0.weightLb', 'exercises.0.sets.0.reps']) {
     assert.ok(errors[path], path);
   }
 });
@@ -44,20 +43,21 @@ test('weights reject negatives, non-finite values, excess precision, and values 
   }
 });
 
-test('set counts and reps obey their existing integer ranges', () => {
-  for (const value of ['0', '-1', '1.5', '101', 'Infinity']) {
+test('set arrays and individual reps obey their existing bounds', () => {
+  for (const count of [0, 101]) {
     const data = draft();
-    data.exercises[0].setCount = value;
-    assert.ok(validateSessionDraft(data)['exercises.0.sets'], value);
+    data.exercises[0].sets = Array.from({ length: count }, () => ({ reps: '1' }));
+    assert.ok(validateSessionDraft(data)['exercises.0.sets'], String(count));
   }
-  for (const value of ['-1', '1.5', '2147483648', 'Infinity']) {
+  for (const value of ['', ' ', '-1', '1.5', '2147483648', 'Infinity', 'NaN']) {
     const data = draft();
-    data.exercises[0].reps = value;
-    assert.ok(validateSessionDraft(data)['exercises.0.reps'], value);
+    data.exercises[0].sets[1].reps = value;
+    const errors = validateSessionDraft(data);
+    assert.ok(errors['exercises.0.sets.1.reps'], value);
+    assert.equal(errors['exercises.0.sets.0.reps'], undefined);
   }
   const data = draft();
-  data.exercises[0].setCount = '100';
-  data.exercises[0].reps = '2147483647';
+  data.exercises[0].sets = Array.from({ length: 100 }, () => ({ reps: '2147483647' }));
   assert.deepEqual(validateSessionDraft(data), {});
 });
 
@@ -88,12 +88,12 @@ test('text and exercise-list limits match the existing contract', () => {
   assert.ok(validateSessionDraft(data).exercises);
 });
 
-test('untouched differing reps remain valid without requiring a replacement value', () => {
+test('differing reps are individually valid, without a shared replacement field', () => {
   const data = draft();
-  Object.assign(data.exercises[0], { setCount: '3', reps: '', originalReps: [10, 8, 6], setsTouched: false });
+  data.exercises[0].sets = [{ reps: '10' }, { reps: '8' }, { reps: '6' }];
   assert.deepEqual(validateSessionDraft(data), {});
-  data.exercises[0].setsTouched = true;
-  assert.ok(validateSessionDraft(data)['exercises.0.reps']);
+  data.exercises[0].sets[1].reps = '';
+  assert.deepEqual(Object.keys(validateSessionDraft(data)), ['exercises.0.sets.1.reps']);
 });
 
 test('API validation paths map to the correct visible exercise fields', () => {
@@ -103,20 +103,22 @@ test('API validation paths map to the correct visible exercise fields', () => {
     'exercises.1.sets': 'Invalid count',
     'exercises.0.sets.2.reps': 'Invalid reps',
     'exercises.0.exerciseId': 'Invalid exercise',
-  } } }, 2);
+  } } }, [3, 2]);
   assert.deepEqual(errors, {
     workoutName: 'Name required',
     'exercises.1.weightLb': 'Invalid weight',
     'exercises.1.sets': 'Invalid count',
-    'exercises.0.reps': 'Invalid reps',
+    'exercises.0.sets.2.reps': 'Invalid reps',
     'exercises.0.exerciseName': 'Invalid exercise',
   });
 });
 
 test('nonvalidation errors and unknown paths cannot become field messages', () => {
-  assert.deepEqual(sessionErrorsFromResponse({ status: 503, data: { fieldErrors: { workoutName: 'No' } } }, 1), {});
-  assert.deepEqual(sessionErrorsFromResponse(null, 1), {});
+  assert.deepEqual(sessionErrorsFromResponse({ status: 503, data: { fieldErrors: { workoutName: 'No' } } }, [1]), {});
+  assert.deepEqual(sessionErrorsFromResponse(null, [1]), {});
   assert.deepEqual(sessionErrorsFromResponse({ status: 400, data: { fieldErrors: {
     userId: 'No', 'exercises.99.weightLb': 'No', notes: 42,
-  } } }, 1), {});
+    'exercises.0.sets.99.reps': 'No', 'exercises.0.weightLb.0': 'No',
+    'exercises.0.sets.0.unknown': 'No',
+  } } }, [1]), {});
 });

@@ -3,10 +3,7 @@ export type FieldErrors = Record<string, string>;
 type ExerciseFields = {
   exerciseName: string;
   weightLb: string;
-  setCount: string;
-  reps: string;
-  originalReps: number[] | null;
-  setsTouched: boolean;
+  sets: { reps: string }[];
 };
 
 type SessionFields = {
@@ -50,23 +47,20 @@ export function validateSessionDraft(draft: SessionFields): FieldErrors {
       errors[`${path}.weightLb`] = 'Use no more than two decimal places, such as 135.25.';
     }
 
-    if (!wholeNumber(exercise.setCount, 1, 100)) {
-      errors[`${path}.sets`] = 'Enter a whole number of sets from 1 to 100.';
+    if (exercise.sets.length < 1 || exercise.sets.length > 100) {
+      errors[`${path}.sets`] = 'Include between 1 and 100 sets for this exercise.';
     }
-    const original = !exercise.setsTouched ? exercise.originalReps : null;
-    if (original) {
-      if (!original.length || original.some((reps) => !Number.isInteger(reps) || reps < 0 || reps > 2147483647)) {
-        errors[`${path}.reps`] = 'Enter a whole number of reps from 0 to 2,147,483,647.';
+    exercise.sets.forEach((set, setIndex) => {
+      if (!wholeNumber(set.reps, 0, 2147483647)) {
+        errors[`${path}.sets.${setIndex}.reps`] = 'Enter a whole number of reps from 0 to 2,147,483,647.';
       }
-    } else if (!wholeNumber(exercise.reps, 0, 2147483647)) {
-      errors[`${path}.reps`] = 'Enter a whole number of reps from 0 to 2,147,483,647.';
-    }
+    });
   });
   return errors;
 }
 
-/** Map API array paths to the basic form's set-count and shared-reps fields. */
-export function sessionErrorsFromResponse(error: unknown, exerciseCount: number): FieldErrors {
+/** Preserve each API set index, and reject messages pointing outside this draft. */
+export function sessionErrorsFromResponse(error: unknown, setCounts: number[]): FieldErrors {
   const response = error as { status?: number; data?: { fieldErrors?: unknown } } | null;
   if (response?.status !== 400 || !response.data?.fieldErrors ||
       typeof response.data.fieldErrors !== 'object' || Array.isArray(response.data.fieldErrors)) return {};
@@ -77,11 +71,17 @@ export function sessionErrorsFromResponse(error: unknown, exerciseCount: number)
       errors[path] = message;
       continue;
     }
-    const match = /^exercises\.(\d+)(?:\.(exerciseName|exerciseId|weightLb|sets)(?:\.\d+(?:\.reps)?)?)?$/.exec(path);
-    if (!match || Number(match[1]) >= exerciseCount) continue;
-    const field = !match[2] || match[2] === 'exerciseId' ? 'exerciseName'
-      : match[2] === 'sets' && path.split('.').length > 3 ? 'reps' : match[2];
-    errors[`exercises.${Number(match[1])}.${field}`] = message;
+    const match = /^exercises\.(\d+)(?:\.(exerciseName|exerciseId|weightLb|sets)(?:\.(\d+)(?:\.reps)?)?)?$/.exec(path);
+    if (!match || Number(match[1]) >= setCounts.length) continue;
+    const exIndex = Number(match[1]);
+    if (match[3] !== undefined) {
+      const setIndex = Number(match[3]);
+      if (match[2] !== 'sets' || setIndex >= setCounts[exIndex]!) continue;
+      errors[`exercises.${exIndex}.sets.${setIndex}.reps`] = message;
+    } else {
+      const field = !match[2] || match[2] === 'exerciseId' ? 'exerciseName' : match[2];
+      errors[`exercises.${exIndex}.${field}`] = message;
+    }
   }
   return errors;
 }
