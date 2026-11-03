@@ -68,7 +68,12 @@ export interface SessionExerciseRecord {
   sets: SessionSetRecord[];
 }
 
+export interface StarPreference {
+  starred: boolean;
+}
+
 export interface WorkoutSessionRecord {
+  starred: boolean;
   id: number;
   /** @nullable */
   workoutVersionId: number | null;
@@ -124,4 +129,16 @@ export type NotFoundResponse = ErrorResponse;
  * Account or session service temporarily unavailable
  */
 export type UnavailableResponse = ErrorResponse;
+
+export type ListSessionsParams = {
+starredOnly?: ListSessionsStarredOnly;
+};
+
+export type ListSessionsStarredOnly = typeof ListSessionsStarredOnly[keyof typeof ListSessionsStarredOnly];
+
+
+export const ListSessionsStarredOnly = {
+  true: 'true',
+  false: 'false',
+} as const;
 

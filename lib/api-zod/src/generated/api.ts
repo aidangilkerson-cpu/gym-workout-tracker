@@ -11,7 +11,12 @@ import * as zod from 'zod';
 /**
  * @summary List only the authenticated user's saved sessions
  */
+export const ListSessionsQueryParams = zod.object({
+  "starredOnly": zod.enum(['true', 'false']).optional()
+})
+
 export const ListSessionsResponseItem = zod.object({
+  "starred": zod.boolean(),
   "id": zod.number().int(),
   "workoutVersionId": zod.number().int().nullable(),
   "workoutName": zod.string(),
@@ -72,6 +77,7 @@ export const CreateSessionBody = zod.object({
 })
 
 export const CreateSessionResponse = zod.object({
+  "starred": zod.boolean(),
   "id": zod.number().int(),
   "workoutVersionId": zod.number().int().nullable(),
   "workoutName": zod.string(),
@@ -103,6 +109,7 @@ export const GetSessionParams = zod.object({
 })
 
 export const GetSessionResponse = zod.object({
+  "starred": zod.boolean(),
   "id": zod.number().int(),
   "workoutVersionId": zod.number().int().nullable(),
   "workoutName": zod.string(),
@@ -169,6 +176,7 @@ export const UpdateSessionBody = zod.object({
 })
 
 export const UpdateSessionResponse = zod.object({
+  "starred": zod.boolean(),
   "id": zod.number().int(),
   "workoutVersionId": zod.number().int().nullable(),
   "workoutName": zod.string(),
@@ -200,6 +208,42 @@ export const DeleteSessionParams = zod.object({
 })
 
 export const DeleteSessionResponse = zod.void()
+
+
+/**
+ * @summary Set or clear a star on an owned session idempotently
+ */
+
+
+
+export const SetSessionStarParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const SetSessionStarBody = zod.object({
+  "starred": zod.boolean()
+})
+
+export const SetSessionStarResponse = zod.object({
+  "starred": zod.boolean(),
+  "id": zod.number().int(),
+  "workoutVersionId": zod.number().int().nullable(),
+  "workoutName": zod.string(),
+  "date": zod.string(),
+  "notes": zod.string().nullable(),
+  "exercises": zod.array(zod.object({
+  "id": zod.number().int(),
+  "exerciseId": zod.number().int(),
+  "exerciseName": zod.string(),
+  "weightLb": zod.number(),
+  "position": zod.number().int(),
+  "sets": zod.array(zod.object({
+  "id": zod.number().int(),
+  "setNumber": zod.number().int(),
+  "reps": zod.number().int()
+}))
+}))
+})
 
 
 /**

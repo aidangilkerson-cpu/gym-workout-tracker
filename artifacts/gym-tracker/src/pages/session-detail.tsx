@@ -7,6 +7,7 @@ import { ArrowLeft, Pencil, Trash2 } from 'lucide-react';
 import { AccountGate, ErrorPanel, PageFrame, SkeletonBlock, errorMessage, errorStatus, formatDate } from '@/components/session-shell';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { NotFoundPanel } from '@/pages/session-edit';
+import { SessionStar } from '@/components/session-star';
 
 function Detail({ id, onBusy, go }: { id: number; onBusy: (b: boolean) => void; go: (to: string) => void }) {
   const qc = useQueryClient();
@@ -47,6 +48,7 @@ function Detail({ id, onBusy, go }: { id: number; onBusy: (b: boolean) => void; 
       <h1 className="rise mt-3 break-words text-4xl font-black uppercase leading-[0.9] md:text-6xl" style={{ animationDelay: '60ms' }} data-testid="text-session-name">{s.workoutName}</h1>
 
       <div className="rise mt-6 flex flex-wrap gap-3" style={{ animationDelay: '100ms' }}>
+        <SessionStar id={id} starred={s.starred} name={s.workoutName} />
         <Link href={`/sessions/${id}/edit`} className="inline-flex h-12 items-center gap-2 rounded-xl bg-primary px-5 font-bold text-primary-foreground" data-testid="link-edit-session">
           <Pencil className="h-4 w-4" /> Edit
         </Link>

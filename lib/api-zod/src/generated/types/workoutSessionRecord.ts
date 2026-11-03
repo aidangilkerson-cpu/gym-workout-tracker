@@ -8,6 +8,7 @@
 import type { SessionExerciseRecord } from './sessionExerciseRecord';
 
 export interface WorkoutSessionRecord {
+  starred: boolean;
   id: number;
   /** @nullable */
   workoutVersionId: number | null;
