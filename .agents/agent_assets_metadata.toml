@@ -1,0 +1,17 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "5aNiSLecZlbr8tUzBm8iF"
+uri = "file://.local/conversation-workspace/files/deliverables/PLAN.md"
+type = "text"
+title = "Gym Workout Tracker — Updated Plan"
+description = "Review draft with the extra-number labels removed from feature titles; feature order and workout version history are unchanged."
+logical_id = "ecafb33d-0dfc-4abf-a386-fcfac8bf624d"
+content_hash = "sha256:2aeb7bf7fa092ac2af9efa3f6680f4e93fe97e3faf55a8201c517066de605976"
+size = 11242
+mtime_ms = 1793669337362
+storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/conversation:e5b5300c-1516-4904-9408-ef24ee7c7320/ecafb33d-0dfc-4abf-a386-fcfac8bf624d/6c89c569-cdff-4600-af48-42e3e3185788"
+storage_version_token = "1793669340763340"
+content_type = "text/markdown"
+source_uri = "file://deliverables/PLAN.md"
