@@ -3,6 +3,7 @@ import type { SessionInput, WorkoutSessionRecord } from '@workspace/api-client-r
 import { Plus, Trash2 } from 'lucide-react';
 import { useUnsavedGuard } from '@/hooks/use-unsaved-guard';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { WeightInput } from '@/components/weight-input';
 import { PageFrame, errorMessage } from '@/components/session-shell';
 
 type ExerciseDraft = {
@@ -188,7 +189,7 @@ export function SessionForm({ mode, initial, cancelTo, onSubmit }: Props) {
                     </div>
                     <div>
                       <label htmlFor={`${id}-weight`} className={labelCls}>Weight (lb)</label>
-                      <input id={`${id}-weight`} type="number" inputMode="decimal" required min={0} max={99999999.99} step="0.01" value={ex.weightLb} onChange={(e) => patchEx(ex.key, { weightLb: e.target.value })} placeholder="135" className={inputCls} data-testid={`input-weight-${i}`} />
+                      <WeightInput id={`${id}-weight`} value={ex.weightLb} onValueChange={(value) => patchEx(ex.key, { weightLb: value })} className={inputCls} testId={`input-weight-${i}`} />
                     </div>
                     <div>
                       <label htmlFor={`${id}-sets`} className={labelCls}>Sets</label>

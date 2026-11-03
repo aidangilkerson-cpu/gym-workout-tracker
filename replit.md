@@ -47,13 +47,15 @@ A personal gym training journal built for a school assignment, one feature at a 
 
 - Feature 1 is merged and published: signup, login, logout, and a protected linked-account area.
 - Feature 2 is merged and published; the nine production tables and their primary/foreign keys were verified read-only.
-- Current approved scope: feature 3 only — dated session create/read/update/delete, linked to the authenticated account, with confirmation before deletion.
+- Feature 3 is merged and published. Current approved scope is only the weight-arrow bug fix: one-pound increments without restricting typed decimal weights. Stop before opening its PR.
 - Template editing, starring behavior, search, dashboard, and charts belong to later separate features. Their underlying tables do not constitute those features.
 - The basic session editor uses a set count and uniform reps per exercise. Individually editable per-set reps remain feature 9; preserve any already-saved differing reps when editing unrelated fields. **Why:** the assignment's feature order must remain intact without overwriting existing data.
+- Feature 8 must let users create a reusable workout without logging a session; saving a workout and logging a dated session are separate actions. **Why:** the user explicitly reiterated that they want to prepare workouts without recording a session.
 
 ## User preferences
 
 - The user chose the app name **LiftLedgr**, with that exact spelling.
+- Weight input arrows must change the weight by 1 lb per step while still allowing typed decimal weights. **Why:** the user reported 0.01 lb arrow increments as incorrect during the live session check.
 
 - Work in the exact assignment order, not all features at once. Required features stay in assignment order; the three additional features come last.
 - Each feature follows GitHub Issue → branch from main → build and prompt log → PR → student merges → publish. Stop for user review before opening the current feature PR.
