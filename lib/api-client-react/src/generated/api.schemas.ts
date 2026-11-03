@@ -132,6 +132,12 @@ export type UnavailableResponse = ErrorResponse;
 
 export type ListSessionsParams = {
 starredOnly?: ListSessionsStarredOnly;
+/**
+ * Case-insensitive literal substring of workout name; surrounding whitespace is ignored.
+ * @maxLength 120
+ */
+q?: string;
+sort?: ListSessionsSort;
 };
 
 export type ListSessionsStarredOnly = typeof ListSessionsStarredOnly[keyof typeof ListSessionsStarredOnly];
@@ -140,5 +146,13 @@ export type ListSessionsStarredOnly = typeof ListSessionsStarredOnly[keyof typeo
 export const ListSessionsStarredOnly = {
   true: 'true',
   false: 'false',
+} as const;
+
+export type ListSessionsSort = typeof ListSessionsSort[keyof typeof ListSessionsSort];
+
+
+export const ListSessionsSort = {
+  newest: 'newest',
+  oldest: 'oldest',
 } as const;
 

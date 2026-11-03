@@ -40,12 +40,14 @@ export function createSessionsRouter(database: SessionDatabase = db): IRouter {
 
   router.get("/sessions", async (req, res) => {
     const query = ListSessionsQueryParams.safeParse(req.query);
-    if (!query.success) {
-      res.status(400).json({ error: "Choose All sessions or Starred only." });
+    // Coercion must not turn repeated/nested filters into plausible strings.
+    if (!query.success || Object.entries(req.query).some(([key, value]) =>
+      typeof value !== "string" || /^(q|sort|starredOnly)\[/.test(key))) {
+      res.status(400).json({ error: "Use a workout-name search of up to 120 characters, a valid session view, and newest or oldest date order." });
       return;
     }
     try {
-      res.json(ListSessionsResponse.parse(await listOwnedSessions(database, res.locals.accountId, query.data.starredOnly === "true")));
+      res.json(ListSessionsResponse.parse(await listOwnedSessions(database, res.locals.accountId, query.data)));
     } catch (error) { failure(req, res, error); }
   });
   router.get("/sessions/:id", async (req, res) => {

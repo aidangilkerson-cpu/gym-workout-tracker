@@ -1,8 +1,8 @@
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray } from "drizzle-orm";
 import {
   db, usersTable, exercisesTable, sessionsTable, sessionExercisesTable, setsTable, starsTable,
 } from "@workspace/db";
-import type { SessionInput } from "@workspace/api-zod";
+import type { SessionInput, ListSessionsParams } from "@workspace/api-zod";
 
 export type SessionDatabase = Pick<typeof db,
   "query" | "select" | "insert" | "update" | "delete" | "transaction">;
@@ -26,14 +26,20 @@ function withStarState<T extends { stars: { id: number }[] }>(session: T) {
   return { ...record, starred: stars.length > 0 };
 }
 
-export async function listOwnedSessions(database: SessionDatabase, userId: string, starredOnly = false) {
+export async function listOwnedSessions(database: SessionDatabase, userId: string, options: ListSessionsParams = {}) {
+  const search = options.q?.trim();
+  // Treat SQL pattern characters literally; Drizzle binds the resulting value.
+  const pattern = search ? `%${search.replace(/[\\%_]/g, "\\$&")}%` : undefined;
   const sessions = await database.query.sessionsTable.findMany({
     where: and(
       eq(sessionsTable.userId, userId),
-      starredOnly ? inArray(sessionsTable.id, database.select({ id: starsTable.sessionId })
+      options.starredOnly === "true" ? inArray(sessionsTable.id, database.select({ id: starsTable.sessionId })
         .from(starsTable).where(eq(starsTable.userId, userId))) : undefined,
+      pattern ? ilike(sessionsTable.workoutName, pattern) : undefined,
     ),
-    orderBy: [desc(sessionsTable.date), desc(sessionsTable.id)],
+    orderBy: options.sort === "oldest"
+      ? [asc(sessionsTable.date), asc(sessionsTable.id)]
+      : [desc(sessionsTable.date), desc(sessionsTable.id)],
     with: sessionContents(userId),
   });
   return sessions.map(withStarState);

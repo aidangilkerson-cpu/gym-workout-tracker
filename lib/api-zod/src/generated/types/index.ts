@@ -13,6 +13,7 @@ export * from './forbiddenResponse';
 export * from './healthStatus';
 export * from './invalidInputResponse';
 export * from './listSessionsParams';
+export * from './listSessionsSort';
 export * from './listSessionsStarredOnly';
 export * from './notFoundResponse';
 export * from './sessionExerciseInput';
