@@ -48,6 +48,15 @@ The student must merge each feature pull request before publishing its update.
 ## Verification boundaries
 
 Type checking, public-page rendering, responsive signup rendering, and signed-out
-API protection were checked. Real signup/login/logout and the signed-in account
-screen have not been exercised end to end. The assignment's workout-isolation
-and dashboard tests will be added when those features exist.
+API protection were checked.
+
+A browser test using Clerk's supported programmatic sign-in also passed: the
+real account endpoint returned the linked account, a refresh retained the same
+identity and account ID, logout returned to the public homepage, and signed-out
+account requests and private-page visits were blocked. No app authentication
+bypass, mocked account response, or manually inserted application row was used.
+
+Actual signup, password-based login, email delivery, and the email-verification
+screens remain unverified. The feature PR remains a draft pending these checks.
+The assignment's workout-isolation and dashboard tests will be added when those
+features exist.

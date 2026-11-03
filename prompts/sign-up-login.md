@@ -81,9 +81,9 @@ available viewport, including minimum-width overrides.
 - The public landing page rendered successfully.
 - The corrected signup form rendered at a 320-pixel-wide phone viewport without
   the previous clipping. The revised frontend typecheck also passed.
-- Real signup/login/logout interactions and the signed-in account screen have
-  not been exercised end to end. Screenshots cannot authenticate; no temporary
-  authentication bypass or fabricated successful account was added.
+- At the initial implementation handoff, real signup/login/logout interactions
+  and the signed-in account screen had not been exercised end to end.
+  Subsequent account-flow verification is recorded below.
 - The two assignment-required workout-isolation and dashboard tests are deferred
   until those features exist. These authentication checks are not a substitute
   for their later red/green evidence.
@@ -100,3 +100,39 @@ social metadata. Keep the existing feature scope and original plan unchanged.
 
 Implementation and verification only. No feature PR opened, no merge performed,
 and no publishing performed in this build step.
+
+## Subsequent account-flow verification
+
+**Approval prompt excerpt:** “Verify feature 1”
+
+**Scope:** Verify the account flow only; leave the feature pull request as a
+draft, without merging, publishing, or starting another feature.
+
+**Method:** Use Clerk's supported programmatic sign-in with a unique synthetic
+development test identity, then drive the real application in a browser.
+Do not interact with Clerk password/signup forms in this automated test. Do not
+mock `/api/me`, insert an application user manually, bypass authentication, or
+change application code or service settings to make the check pass.
+
+**Results:**
+
+1. In a fresh signed-out context, `/api/me` returned HTTP 401.
+2. After programmatic Clerk sign-in, the app redirected to `/user-portal`.
+   The actual `/api/me` endpoint returned HTTP 200. The account card displayed
+   the matching test email and nonempty application and authentication IDs.
+3. Refreshing retained the signed-in account and the same application ID.
+   `/api/me` again returned HTTP 200 without an account error.
+4. Clicking Log out returned to the public homepage, removed private account
+   details, and made `/api/me` return HTTP 401 again.
+5. Visiting `/user-portal` while signed out redirected to the public homepage.
+
+**Relevant result excerpt:** “The supported programmatic mechanism was used,
+and the actual `/api/me` endpoint succeeded; no mocked response, manually
+inserted application row, middleware bypass, code change, or service
+configuration change was used.”
+
+**Limitations:** This verifies an authenticated session, account linking,
+refresh persistence, logout, and signed-out protection. It does not verify
+actual signup, entering a password, actual email delivery, or the
+email-verification screens. Those checks remain outstanding before the draft
+PR is ready to merge. No changes to feature scope or the original plan.
