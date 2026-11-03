@@ -1,14 +1,42 @@
-# Gym Workout Tracker
+# LiftLedgr — Gym Workout Tracker
 
 Solo app assignment repository.
 
-This initial commit establishes the repository for the planning pull request. The student confirmed instructor approval for this one-time initialization exception. PLAN.md and subsequent assignment work will be added through linked Issues, branches, and pull requests.
+The student confirmed instructor approval for a one-time repository initialization
+exception. Planning and feature work follow linked Issues, branches, and pull requests.
 
 ## Current feature
 
 Feature 1 adds email/password signup, login, logout, and a private account screen
 using Clerk. A verified signed-in account is linked to a PostgreSQL `users` row.
 Workout logging and the other planned features are not implemented yet.
+
+This branch adds **feature 2: the data model**, in development only. It adds the
+eight workout-related tables from `PLAN.md` alongside the existing users table.
+It does not add workout screens, workout API endpoints, or logging behavior.
+
+## Data model
+
+- `users` owns exercises, workout templates, and sessions.
+- `workouts` has dated `workout_versions`; each version has an ordered list in
+  `workout_version_exercises`.
+- `sessions` optionally links to a workout version. `session_exercises` stores
+  exercise-name snapshots and one decimal weight in pounds; `sets` stores each
+  set's number and reps.
+- `stars` is the single user/session junction table. A composite foreign key
+  also prevents starring a session belonging to a different user.
+- Stable exercise IDs and saved workout/exercise names support historical
+  results across future template edits. Referenced exercises, workouts, and
+  versions cannot be deleted accidentally through parent deletion. Library
+  entries can be archived instead.
+- Explicitly deleting a session cascades only to its session exercises, sets,
+  and stars. It does not delete its template versions or exercise-library rows.
+
+These tables provide the structure for later features, not those features'
+behavior. Appending new template versions rather than editing old versions will
+be implemented in the template feature. Foreign keys are not API authorization:
+future handlers must scope every read/write to the authenticated user and check
+ownership of all linked records, including exercise and workout-version IDs.
 
 ## Tools and structure
 
@@ -40,9 +68,25 @@ Clerk instance.
 Run `pnpm run typecheck` for the full TypeScript check. After changing the API
 contract, run `pnpm --filter @workspace/api-spec run codegen`.
 
+### Verify the development data model
+
+After applying the schema, run `pnpm --filter @workspace/db run test`.
+The integration test checks all nine table definitions and their keys, decimal
+weights, per-set reps, dates, historical snapshots, uniqueness constraints,
+foreign-key failures, ownership of stars, and session-delete cleanup.
+
+Fixtures are written in one transaction and rolled back even on failure; no
+sample workouts are left in the app. Sequence numbers may have gaps after a
+rollback, which is normal. Run this only against development, never production.
+These checks do not replace the later assignment-required browser isolation and
+dashboard tests.
+
 ## Publication
 
-No published app URL yet. A development preview is not the submission URL.
+Published app: https://liftledgr-aidangilkerson.replit.app
+
+The currently published release is feature 1. Feature 2 schema changes are
+development-only until its PR is merged and the app is published again.
 The student must merge each feature pull request before publishing its update.
 
 ## Verification boundaries
@@ -59,7 +103,8 @@ bypass, mocked account response, or manually inserted application row was used.
 The user additionally confirmed manual signup and account verification,
 successful password-based login with the account linked, and remaining signed
 in after a refresh. These are user-reported manual results, not automated
-coverage of password entry or email delivery. The feature PR remains a draft
-until the user approves marking it ready for review.
+coverage of password entry or email delivery. Feature 1's PR was subsequently
+merged and published. The user confirmed Google sign-in linked their account
+on the live app.
 The assignment's workout-isolation and dashboard tests will be added when those
 features exist.
