@@ -51,7 +51,7 @@ A personal gym training journal built for a school assignment, one feature at a 
 
 - Feature 1 is merged and published: signup, login, logout, and a protected linked-account area.
 - Feature 2 is merged and published; the nine production tables and their primary/foreign keys were verified read-only.
-- Features 1–9 and the one-pound weight-arrow fix are merged and published. Current approved scope is feature 10 only: independent repeat-session drafts and last-time suggestions for saved workout starts. Stop before opening its PR.
+- All ten features and the one-pound weight-arrow fix are merged and published. Current approved scope is formal Test A only, under its separate Issue/branch. Stop before opening its PR; Test B remains a later separate step.
 - Template editing is feature 8, per-set editing is feature 9, and repeat-session behavior is feature 10. Their underlying tables do not constitute those features.
 - Feature 10 must offer the previous weight, sets, and reps when starting a saved preset, clearly noting that those numbers are what was done "Last time" until the user fills in the new numbers.
   **Why:** the user requested: "yes plan that behavior and make it so it notes that is what you did last time until you fill in the new numbers".
