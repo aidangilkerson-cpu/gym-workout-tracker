@@ -63,6 +63,10 @@ Removing the logged-in user filter from the session-list database query would ex
 
 ## Student understanding and next gate
 
-The student's own brief explanation is still pending. Ask for it before treating the assignment's understanding requirement as complete.
+The student supplied this explanation in their own words:
+
+> This tests ensures that each user can only see their own data. It would fail if a user logs into their account and sees a workout saved by another user.
+
+This correctly describes the intended isolation and observable failure. Specifically, this test proves isolation of the session-history response; it does not independently prove every endpoint or the Clerk login UI.
 
 Stop before opening the Test A PR. Its later description must include this scenario/explanation, both actual screenshots and the failure-condition sentence; if the evidence cannot be embedded automatically, have the student attach the supplied original screenshots rather than inventing image URLs. The temporary break must never be committed or merged.
