@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Gym Workout Tracker"
+description = "Personal gym workout tracker. This first feature implements only secure account creation, sign-in, sign-out, and a private account area. Workout logging and progress features will be added in later separately reviewed pull requests."
+version = "1.0.0"
+id = "artifacts/gym-tracker"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 26029
+
+[services.development]
+run = "pnpm --filter @workspace/gym-tracker run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/gym-tracker", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/gym-tracker/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "26029"
+BASE_PATH = "/"
