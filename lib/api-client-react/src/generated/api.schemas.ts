@@ -85,8 +85,15 @@ export interface AppUser {
   email: string;
 }
 
+/**
+ * Optional validation messages keyed by dot-separated SessionInput field paths, such as exercises.0.weightLb or exercises.0.sets.0.reps.
+ */
+export type ErrorResponseFieldErrors = {[key: string]: string};
+
 export interface ErrorResponse {
   error: string;
+  /** Optional validation messages keyed by dot-separated SessionInput field paths, such as exercises.0.weightLb or exercises.0.sets.0.reps. */
+  fieldErrors?: ErrorResponseFieldErrors;
 }
 
 export interface HealthStatus {

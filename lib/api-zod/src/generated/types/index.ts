@@ -8,6 +8,7 @@
 
 export * from './appUser';
 export * from './errorResponse';
+export * from './errorResponseFieldErrors';
 export * from './forbiddenResponse';
 export * from './healthStatus';
 export * from './invalidInputResponse';

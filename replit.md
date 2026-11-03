@@ -47,7 +47,7 @@ A personal gym training journal built for a school assignment, one feature at a 
 
 - Feature 1 is merged and published: signup, login, logout, and a protected linked-account area.
 - Feature 2 is merged and published; the nine production tables and their primary/foreign keys were verified read-only.
-- Feature 3 is merged and published. Current approved scope is only the weight-arrow bug fix: one-pound increments without restricting typed decimal weights. Stop before opening its PR.
+- Feature 3 and the one-pound weight-arrow fix are merged and published. Current approved scope is feature 4 only: friendly create/edit validation, first-error focus, safe server errors, and retaining drafts on failure. Stop before opening its PR.
 - Template editing, starring behavior, search, dashboard, and charts belong to later separate features. Their underlying tables do not constitute those features.
 - The basic session editor uses a set count and uniform reps per exercise. Individually editable per-set reps remain feature 9; preserve any already-saved differing reps when editing unrelated fields. **Why:** the assignment's feature order must remain intact without overwriting existing data.
 - Feature 8 must let users create a reusable workout without logging a session; saving a workout and logging a dated session are separate actions. **Why:** the user explicitly reiterated that they want to prepare workouts without recording a session.

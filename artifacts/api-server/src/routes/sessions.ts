@@ -5,16 +5,11 @@ import {
   GetSessionResponse, ListSessionsResponse,
 } from "@workspace/api-zod";
 import { getApplicationAccount } from "../lib/application-account";
+import { sessionFieldErrors } from "../lib/session-validation";
 import {
   listOwnedSessions, getOwnedSession, saveOwnedSession, deleteOwnedSession,
   SessionNotFound, type SessionDatabase,
 } from "../lib/session-store";
-
-function validCalendarDate(date: string) {
-  const parsed = new Date(`${date}T12:00:00Z`);
-  return date.slice(0, 4) !== "0000" &&
-    !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === date;
-}
 
 export function createSessionsRouter(database: SessionDatabase = db): IRouter {
   const router = Router();
@@ -62,10 +57,9 @@ export function createSessionsRouter(database: SessionDatabase = db): IRouter {
     const id = editing ? parseId(req, res) : undefined;
     if (id === null) return;
     const parsed = (editing ? UpdateSessionBody : CreateSessionBody).safeParse(req.body);
-    if (!parsed.success || !parsed.data.workoutName.trim() ||
-      !validCalendarDate(parsed.data.date) ||
-      parsed.data.exercises.some((entry) => !entry.exerciseName.trim())) {
-      res.status(400).json({ error: "Check the session date, names, weights, and reps before saving." });
+    const fieldErrors = sessionFieldErrors(req.body, parsed.success ? [] : parsed.error.issues);
+    if (!parsed.success || Object.keys(fieldErrors).length) {
+      res.status(400).json({ error: "Check the highlighted fields before saving.", fieldErrors });
       return;
     }
     try {

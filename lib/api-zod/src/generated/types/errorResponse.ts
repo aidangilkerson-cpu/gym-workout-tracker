@@ -5,7 +5,10 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ErrorResponseFieldErrors } from './errorResponseFieldErrors';
 
 export interface ErrorResponse {
   error: string;
+  /** Optional validation messages keyed by dot-separated SessionInput field paths, such as exercises.0.weightLb or exercises.0.sets.0.reps. */
+  fieldErrors?: ErrorResponseFieldErrors;
 }

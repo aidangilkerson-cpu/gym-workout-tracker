@@ -192,6 +192,58 @@ describe("Session API with real PostgreSQL (fixtures always rolled back)", () =>
     });
   });
 
+  it("returns actionable field errors and does not overwrite a saved session after an invalid edit", async () => {
+    await fixture(async ({ app, a }) => {
+      const saved = await create(app, a);
+      const invalid = {
+        ...input(), workoutName: " ", date: "2026-02-30",
+        exercises: [{ exerciseName: " ", weightLb: -1, sets: [{ reps: 1.5 }] }],
+      };
+      const result = await request(app).put(`/api/sessions/${saved.id}`)
+        .set("x-test-account", a).send(invalid).expect(400);
+      expect(result.body.error).toBe("Check the highlighted fields before saving.");
+      for (const path of ["workoutName", "date", "exercises.0.exerciseName", "exercises.0.weightLb", "exercises.0.sets.0.reps"]) {
+        expect(result.body.fieldErrors[path]).toEqual(expect.any(String));
+      }
+      const reloaded = await request(app).get(`/api/sessions/${saved.id}`)
+        .set("x-test-account", a).expect(200);
+      expect(reloaded.body).toEqual(saved);
+      await request(app).post("/api/sessions").set("x-test-account", a).send(invalid).expect(400);
+      expect((await request(app).get("/api/sessions").set("x-test-account", a).expect(200)).body).toHaveLength(1);
+
+      const corrected = { ...input(), exercises: [{ exerciseName: "Unweighted exercise", weightLb: 0, sets: [{ reps: 0 }] }] };
+      const updated = await request(app).put(`/api/sessions/${saved.id}`)
+        .set("x-test-account", a).send(corrected).expect(200);
+      expect(updated.body.exercises[0]).toMatchObject({ weightLb: 0, sets: [{ reps: 0 }] });
+    });
+  });
+
+  it("explains invalid precision, ranges, required arrays, and text limits on direct requests", async () => {
+    await fixture(async ({ app, a }) => {
+      const cases: [object, string][] = [
+        [{ ...input(), workoutName: "a".repeat(121) }, "workoutName"],
+        [{ ...input(), notes: "a".repeat(5001) }, "notes"],
+        [{ ...input(), date: "0000-01-01" }, "date"],
+        [{ ...input(), exercises: [] }, "exercises"],
+        [{ ...input(), exercises: [{ ...input().exercises[0], weightLb: 135.251 }] }, "exercises.0.weightLb"],
+        [{ ...input(), exercises: [{ ...input().exercises[0], weightLb: 100000000 }] }, "exercises.0.weightLb"],
+        [{ ...input(), exercises: [{ ...input().exercises[0], sets: [] }] }, "exercises.0.sets"],
+        [{ ...input(), exercises: [{ ...input().exercises[0], sets: Array.from({ length: 101 }, () => ({ reps: 8 })) }] }, "exercises.0.sets"],
+        [{ ...input(), exercises: [{ ...input().exercises[0], sets: [{ reps: 2147483648 }] }] }, "exercises.0.sets.0.reps"],
+      ];
+      for (const [data, path] of cases) {
+        const result = await request(app).post("/api/sessions")
+          .set("x-test-account", a).send(data).expect(400);
+        expect(result.body.fieldErrors[path]).toEqual(expect.any(String));
+        expect(result.body.stack).toBeUndefined();
+      }
+      const valid = { ...input(), date: "2024-02-29" };
+      const created = await create(app, a, valid);
+      expect(created.exercises[0].weightLb).toBe(135.25);
+      expect(created.date).toBe("2024-02-29");
+    });
+  });
+
   it("rejects invalid writes and ignores attempts to assign the owner or version from request input", async () => {
     await fixture(async ({ app, a, b }) => {
       for (const data of [
