@@ -43,3 +43,31 @@ mtime_ms = 1793688910322
 storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/repl:32d8c419-f51e-4bef-b465-162c9411a6f8/d318231b-6b82-4113-9665-c90ad3303e32/500273c4-3793-4bba-a07c-9f04fe3829c0"
 storage_version_token = "1793688971612067"
 content_type = "image/png"
+
+[[outputs]]
+id = "VzxMyCw_uK84u9Q7aqPsp"
+uri = "file://generated-artifacts/test-b/red.png"
+type = "image"
+title = "Test B — failing result"
+description = "Actual Vitest output: the isolated broken calculation reports 6 reps instead of the expected 54."
+logical_id = "1d8beda6-c9af-4b2d-8572-34d7db3e5919"
+content_hash = "sha256:333a93bb018b3b940dd8001e0921c58710db8d4217c3b4c01d1a03254ebab208"
+size = 147574
+mtime_ms = 1793689828458
+storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/repl:32d8c419-f51e-4bef-b465-162c9411a6f8/1d8beda6-c9af-4b2d-8572-34d7db3e5919/ce2a8263-f44c-49d0-bd9d-a0383c7ebbf6"
+storage_version_token = "1793689941827174"
+content_type = "image/png"
+
+[[outputs]]
+id = "JIl0LxNOEmxDkQ3auDuVF"
+uri = "file://generated-artifacts/test-b/green.png"
+type = "image"
+title = "Test B — passing result"
+description = "Actual Vitest output: restoring the rep-summing calculation passes the same 2-session, 6-set, 54-rep test. Screenshot shows an output viewer, not a terminal."
+logical_id = "87a4eab9-4b09-41ad-b429-a73dca06ec12"
+content_hash = "sha256:e498f17d265b5c9c5feefe87f40b2b05332420ee45eb13076e89f28c38ef0739"
+size = 61746
+mtime_ms = 1793689837058
+storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/repl:32d8c419-f51e-4bef-b465-162c9411a6f8/87a4eab9-4b09-41ad-b429-a73dca06ec12/7c51ba2f-15b0-4ee4-ba25-7243ccc306e2"
+storage_version_token = "1793689942239871"
+content_type = "image/png"
