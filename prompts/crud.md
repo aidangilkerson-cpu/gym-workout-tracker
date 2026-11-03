@@ -94,13 +94,6 @@ The navigation guard was corrected before browser verification. It consumes
 the extra history entry before replacing the original form entry, covers the
 brand/navigation links, and confirms dirty logout before signing out.
 
-**Verification response excerpt:**
-
-> “The session API is in place, and the session screens are being built. I’m
-> adding tests for saved edits, deletion, and account privacy. This is also
-> where we can capture the assignment’s required failing-then-passing evidence
-> for data isolation.”
-
 ## Mistakes and corrections
 
 - Initial generated mutation hooks used `Headers.entries()`, which requires
@@ -115,70 +108,57 @@ brand/navigation links, and confirms dirty logout before signing out.
   PORT/BASE_PATH values. Re-ran with the existing service's port and base path;
   production compilation passed. No app configuration or secrets were changed.
 
-## Assignment test A: real failing and passing evidence
+## Workflow mistake caught by the student
 
-**Plain-English scenario:** User A has a saved workout session. User B has no
-sessions. When B requests workout history, the result must be empty and must
-not include any of A's workout data.
+**What happened:** The agent prematurely added the assignment's dedicated
+data-isolation scenario and generated red/green evidence during feature 3.
+The first feature commit included that work alongside ordinary CRUD checks.
 
-**What would break it:** Removing user-based filtering from the session-list
-database query would return another account's sessions.
+**How it was noticed — actual student prompt excerpt:**
 
-**Actual red run:** Temporarily removed that filter in the source used only by
-the test process, then ran:
+> “based on the assignment it looks like the 2 tests need to be on their own
+> issues and pull requests”
 
-```sh
-pnpm --filter @workspace/api-server exec vitest run \
-  -t 'A. Data isolation' --reporter=verbose --no-color
-```
+The student then supplied the assignment wording requiring the explanation,
+red/green screenshots, and what-would-break-it sentence in the PR that adds
+each test. The agent acknowledged the distinction and stopped before opening
+the feature 3 PR.
 
-The process exited 1 with the expected assertion failure: expected `[]` but
-received a saved session including “Private upper-body session.” Other tests
-were skipped for this focused intentional-break run.
+**Approved correction prompt excerpt:** “Separate Test A”
 
-**Restoration and actual green run:** Immediately restored the owner filter,
-then ran:
+**How it was fixed:** Removed the dedicated Given/When/Then isolation test and
+the evidence renderer from the feature branch's final contents. Retained the
+seven routine CRUD/security checks. Removed the instructions to attach Test A
+screenshots to the feature 3 PR. Preserved the removed scenario and renderer
+under ignored `generated-artifacts/deferred-tests/`, and kept the actual early
+logs/reports/images under `generated-artifacts/feature-3/`.
 
-```sh
-pnpm --filter @workspace/api-server exec vitest run \
-  --reporter=verbose --no-color
-```
-
-All eight API tests passed. The API workflow was rebuilt only after restoration.
-The intentional break was never published and is not part of the final commit.
-
-**Evidence files:** `generated-artifacts/feature-3/isolation-red.log` and
-`isolation-green.log` contain actual captured test output. Their HTML reports
-include output excerpts and full unedited logs; `isolation-red.jpg` and
-`isolation-green.jpg` are screenshots of those reports, not screenshots of a
-browser-login test. The evidence rendering script is
-`scripts/render-isolation-evidence.mjs`.
-
-Provider identity is substituted inside the test runner only. Routing,
-validation, authorization queries, transactions, and relationships use real
-development PostgreSQL. Each fixture is rolled back even when a test fails.
-The suite also tests direct read/edit/delete protection; the primary scenario
-does not require a person to know a database ID.
-
-**PR evidence requirement:** Download both supplied screenshots from the
-workspace Library and attach them to the feature 3 PR. Generated output stays
-outside Git/published app files. The PR is not complete evidence until both
-screenshots are attached. Dashboard test B remains for the dashboard feature.
+The earlier eight-test green run really occurred, but included the prematurely
+bundled test. It is not claimed as completion of the separate test deliverable.
+No history was rewritten to hide the mistake. The separate test must be added
+and demonstrated through its own authorized Issue/branch/PR, with fresh
+red/green evidence and this student-caught correction described in that PR.
+Dashboard test B remains separate too and requires the dashboard to exist.
 
 ## Verification results
 
-- Eight Vitest + Supertest API tests passed: list isolation; create/read/update
+- After separation, all seven routine Vitest + Supertest API tests passed:
+  create/read/update
   persistence; sign-in requirements; other-account direct access protection;
   exercise-link ownership and rollback; deletion limited to selected
   dependents; preservation of version links and unequal reps; invalid writes
   and ignored client ownership/version assignments.
+- The post-correction run used
+  `pnpm --filter @workspace/api-server exec vitest run --reporter=verbose --no-color`;
+  its actual output is retained in
+  `generated-artifacts/feature-3/crud-separated.log`. The dedicated Test A
+  scenario was not run again as part of this correction.
 - Full workspace TypeScript check passed after code generation and guard fixes.
 - Frontend production build passed. Existing non-blocking sourcemap/chunk-size
   warnings did not prevent build output.
 - API and frontend managed workflows rebuilt/restarted successfully.
 - Development API health check returned HTTP 200; signed-out session list
   returned HTTP 401.
-- Actual red/green test-output reports were rendered and captured as screenshots.
 - One real signed-in browser pass at 402×874 passed: Account linked, create a
   session with two exercises, reload to confirm saved values, edit, retain edits
   through Cancel/Back/Account discard prompts, save changed name/weight/sets/reps,

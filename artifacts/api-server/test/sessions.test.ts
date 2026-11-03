@@ -78,16 +78,6 @@ async function create(app: Express, user: string, data = input()) {
 afterAll(async () => { await pool.end(); });
 
 describe("Session API with real PostgreSQL (fixtures always rolled back)", () => {
-  it("A. Data isolation: User B sees no sessions when only User A has a saved session", async () => {
-    await fixture(async ({ app, a, b }) => {
-      await create(app, a);
-      const response = await request(app).get("/api/sessions")
-        .set("x-test-account", b).expect(200);
-      expect(response.body).toEqual([]);
-      expect(response.text).not.toContain("Private upper-body session");
-    });
-  });
-
   it("creates, lists, reads and updates a persisted session with decimal pounds and a calendar date", async () => {
     await fixture(async ({ app, tx, a }) => {
       const saved = await create(app, a);

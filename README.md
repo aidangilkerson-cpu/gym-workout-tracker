@@ -66,27 +66,18 @@ pnpm --filter @workspace/api-server run test
 pnpm run typecheck
 ```
 
-The eight Vitest + Supertest tests use real PostgreSQL; only provider identity is
+The seven routine Vitest + Supertest tests use real PostgreSQL; only provider identity is
 substituted within the test process. Each fixture rolls back, even on failure.
 There is no test-login header or authentication bypass in the running app.
 Never run fixture tests against production.
 
-### Assignment test A: data isolation
-
-User A saves a session; User B has no sessions and requests their own history.
-The expected result is an empty list with none of A's data. Removing the
-account filter from the list query would break this test.
-
-This intentional break was actually exercised: the test failed with A's session
-in B's result. The filter was then restored and all eight API tests passed.
-The intentional break is not present in the delivered source.
-
-Actual output logs, rendered reports, and screenshots are retained under
-`generated-artifacts/feature-3/`, excluded from Git and publishing.
-The two screenshots are available as downloadable assignment evidence in the
-workspace Library. Attach both images to the feature 3 PR when preparing it for
-review; do not replace screenshots with a claim that tests passed.
-See `prompts/crud.md` for the structured development log.
+These are routine feature-safety checks, not the two separate assignment test
+deliverables. The required data-isolation scenario and dashboard-calculation
+scenario will each be added through their own Issue, branch, and PR, with the
+required explanation, failing/passing screenshots, and what-would-break-it
+sentence. No assignment Test A evidence needs to be attached to the feature 3 PR.
+See `prompts/crud.md` for the development log and the student-caught correction
+that separated the prematurely bundled assignment test from this feature.
 
 ## Tools and structure
 
