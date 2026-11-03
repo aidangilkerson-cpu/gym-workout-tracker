@@ -9,6 +9,69 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Owned all-time totals and dated training progress
+ */
+export const getDashboardQueryExerciseIdMax = 2147483647;
+
+export const getDashboardQueryWorkoutKeyMax = 160;
+
+
+
+export const GetDashboardQueryParams = zod.object({
+  "exerciseId": zod.coerce.number().int().min(1).max(getDashboardQueryExerciseIdMax).optional(),
+  "workoutKey": zod.coerce.string().min(1).max(getDashboardQueryWorkoutKeyMax).optional()
+})
+
+export const getDashboardResponseTotalSessionsMin = 0;
+
+export const getDashboardResponseTotalSetsMin = 0;
+
+export const getDashboardResponseTotalRepsMin = 0;
+
+
+
+export const GetDashboardResponse = zod.object({
+  "totalSessions": zod.number().int().min(getDashboardResponseTotalSessionsMin),
+  "totalSets": zod.number().int().min(getDashboardResponseTotalSetsMin),
+  "totalReps": zod.number().int().min(getDashboardResponseTotalRepsMin),
+  "weekly": zod.array(zod.object({
+  "weekStart": zod.string(),
+  "sessionCount": zod.number().int()
+})).describe('Monday-start calendar weeks through the latest logged week, zero-filled; at most 104 weeks'),
+  "weeklyWindowed": zod.boolean().describe('True when the weekly chart shows only the latest 104 weeks; all-time totals are unchanged'),
+  "exercises": zod.array(zod.object({
+  "id": zod.number().int(),
+  "name": zod.string()
+})),
+  "workouts": zod.array(zod.object({
+  "key": zod.string(),
+  "name": zod.string()
+})),
+  "selectedExerciseId": zod.number().int().nullable(),
+  "selectedWorkoutKey": zod.string().nullable(),
+  "exerciseWeights": zod.array(zod.object({
+  "sessionId": zod.number().int(),
+  "entryId": zod.number().int(),
+  "date": zod.string(),
+  "workoutName": zod.string(),
+  "weightLb": zod.number()
+})).describe('One point per logged exercise entry, retaining multiple entries/same-date values'),
+  "exerciseReps": zod.array(zod.object({
+  "sessionId": zod.number().int(),
+  "date": zod.string(),
+  "workoutName": zod.string(),
+  "totalReps": zod.number().int()
+})).describe('Total actual reps for the selected exercise across all its entries within each session'),
+  "workoutVolume": zod.array(zod.object({
+  "sessionId": zod.number().int(),
+  "date": zod.string(),
+  "workoutName": zod.string(),
+  "volumeLbReps": zod.number()
+}))
+})
+
+
+/**
  * @summary List only the authenticated user's saved sessions
  */
 export const listSessionsQueryQMax = 120;

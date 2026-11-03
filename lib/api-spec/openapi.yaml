@@ -11,6 +11,41 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /dashboard:
+    get:
+      operationId: getDashboard
+      tags: [dashboard]
+      summary: Owned all-time totals and dated training progress
+      parameters:
+        - name: exerciseId
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 2147483647
+        - name: workoutKey
+          in: query
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 160
+      responses:
+        "200":
+          description: Real saved training history, scoped to the signed-in account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardData"
+        "400":
+          $ref: "#/components/responses/InvalidInput"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/Unavailable"
   /sessions:
     get:
       operationId: listSessions
@@ -261,6 +296,115 @@ components:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
   schemas:
+    DashboardData:
+      type: object
+      required: [totalSessions, totalSets, totalReps, weekly, weeklyWindowed, exercises, workouts, selectedExerciseId, selectedWorkoutKey, exerciseWeights, exerciseReps, workoutVolume]
+      properties:
+        totalSessions:
+          type: integer
+          minimum: 0
+        totalSets:
+          type: integer
+          minimum: 0
+        totalReps:
+          type: integer
+          minimum: 0
+        weekly:
+          type: array
+          description: Monday-start calendar weeks through the latest logged week, zero-filled; at most 104 weeks
+          items:
+            $ref: "#/components/schemas/WeeklySessions"
+        weeklyWindowed:
+          type: boolean
+          description: True when the weekly chart shows only the latest 104 weeks; all-time totals are unchanged
+        exercises:
+          type: array
+          items:
+            $ref: "#/components/schemas/DashboardExercise"
+        workouts:
+          type: array
+          items:
+            $ref: "#/components/schemas/DashboardWorkout"
+        selectedExerciseId:
+          type: [integer, "null"]
+        selectedWorkoutKey:
+          type: [string, "null"]
+        exerciseWeights:
+          type: array
+          description: One point per logged exercise entry, retaining multiple entries/same-date values
+          items:
+            $ref: "#/components/schemas/ExerciseWeightPoint"
+        exerciseReps:
+          type: array
+          description: Total actual reps for the selected exercise across all its entries within each session
+          items:
+            $ref: "#/components/schemas/ExerciseRepsPoint"
+        workoutVolume:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkoutVolumePoint"
+    WeeklySessions:
+      type: object
+      required: [weekStart, sessionCount]
+      properties:
+        weekStart:
+          type: string
+        sessionCount:
+          type: integer
+    DashboardExercise:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+    DashboardWorkout:
+      type: object
+      required: [key, name]
+      properties:
+        key:
+          type: string
+        name:
+          type: string
+    ExerciseWeightPoint:
+      type: object
+      required: [sessionId, entryId, date, workoutName, weightLb]
+      properties:
+        sessionId:
+          type: integer
+        entryId:
+          type: integer
+        date:
+          type: string
+        workoutName:
+          type: string
+        weightLb:
+          type: number
+    ExerciseRepsPoint:
+      type: object
+      required: [sessionId, date, workoutName, totalReps]
+      properties:
+        sessionId:
+          type: integer
+        date:
+          type: string
+        workoutName:
+          type: string
+        totalReps:
+          type: integer
+    WorkoutVolumePoint:
+      type: object
+      required: [sessionId, date, workoutName, volumeLbReps]
+      properties:
+        sessionId:
+          type: integer
+        date:
+          type: string
+        workoutName:
+          type: string
+        volumeLbReps:
+          type: number
     SessionSetInput:
       type: object
       required: [reps]

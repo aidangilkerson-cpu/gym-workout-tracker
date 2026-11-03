@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'wouter';
 import { useUnsavedGuard } from '@/hooks/use-unsaved-guard';
-import { useGetSession, useDeleteSession, getGetSessionQueryKey, getListSessionsQueryKey } from '@workspace/api-client-react';
+import { useGetSession, useDeleteSession, getGetSessionQueryKey, getListSessionsQueryKey, getGetDashboardQueryKey } from '@workspace/api-client-react';
 import { ArrowLeft, Pencil, Trash2 } from 'lucide-react';
 import { AccountGate, ErrorPanel, PageFrame, SkeletonBlock, errorMessage, errorStatus, formatDate } from '@/components/session-shell';
 import { ConfirmDialog } from '@/components/confirm-dialog';
@@ -33,6 +33,7 @@ function Detail({ id, onBusy, go }: { id: number; onBusy: (b: boolean) => void; 
       await del.mutateAsync({ id });
       qc.removeQueries({ queryKey: getGetSessionQueryKey(id) });
       await qc.invalidateQueries({ queryKey: getListSessionsQueryKey() });
+      await qc.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
       setConfirmOpen(false);
       go('/sessions');
     } catch (err) {

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useCreateSession, getListSessionsQueryKey, getGetSessionQueryKey, type SessionInput } from '@workspace/api-client-react';
+import { useCreateSession, getListSessionsQueryKey, getGetSessionQueryKey, getGetDashboardQueryKey, type SessionInput } from '@workspace/api-client-react';
 import { SessionForm } from '@/components/session-form';
 import { AccountGate, PageFrame } from '@/components/session-shell';
 
@@ -11,6 +11,7 @@ function NewSessionForm() {
     const saved = await create.mutateAsync({ data });
     qc.setQueryData(getGetSessionQueryKey(saved.id), saved);
     await qc.invalidateQueries({ queryKey: getListSessionsQueryKey() });
+    await qc.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
     return saved;
   };
   return <SessionForm mode="create" cancelTo="/sessions" onSubmit={submit} />;

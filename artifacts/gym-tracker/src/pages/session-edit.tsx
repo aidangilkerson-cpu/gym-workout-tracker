@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'wouter';
-import { useGetSession, useUpdateSession, getGetSessionQueryKey, getListSessionsQueryKey, type SessionInput } from '@workspace/api-client-react';
+import { useGetSession, useUpdateSession, getGetSessionQueryKey, getListSessionsQueryKey, getGetDashboardQueryKey, type SessionInput } from '@workspace/api-client-react';
 import { SessionForm } from '@/components/session-form';
 import { ErrorPanel, PageFrame, SkeletonBlock, errorMessage, errorStatus } from '@/components/session-shell';
 import { AccountGateFrame } from '@/pages/session-new';
@@ -37,6 +37,7 @@ function EditLoader({ id }: { id: number }) {
     const saved = await update.mutateAsync({ id, data });
     qc.setQueryData(getGetSessionQueryKey(id), saved);
     await qc.invalidateQueries({ queryKey: getListSessionsQueryKey() });
+    await qc.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
     return saved;
   };
   return <SessionForm key={id} mode="edit" initial={q.data} cancelTo={`/sessions/${id}`} onSubmit={submit} />;
