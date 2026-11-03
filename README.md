@@ -7,13 +7,22 @@ exception. Planning and feature work follow linked Issues, branches, and pull re
 
 ## Current feature
 
-Feature 1 adds email/password signup, login, logout, and a private account screen
-using Clerk. A verified signed-in account is linked to a PostgreSQL `users` row.
-Workout logging and the other planned features are not implemented yet.
+Features 1 and 2 are merged and published: Clerk accounts and the nine-table
+workout data model.
 
-This branch adds **feature 2: the data model**, in development only. It adds the
-eight workout-related tables from `PLAN.md` alongside the existing users table.
-It does not add workout screens, workout API endpoints, or logging behavior.
+This branch adds **feature 3: session create / read / update / delete** in
+development. Signed-in users can save dated sessions with exercise entries, read
+their history and session details, edit a session, and delete it after
+confirmation. A session exercise uses one weight in pounds and, for this basic
+editor, a set count with the same reps for every set.
+
+The account screen links to `/sessions`; create, detail, and edit routes are
+`/sessions/new`, `/sessions/:id`, and `/sessions/:id/edit`.
+Advanced individually editable per-set reps remain feature 9. If existing saved
+reps differ, this editor preserves them unless sets/reps are explicitly changed.
+Friendly field validation, stars, search/sort, dashboards, reusable templates
+with version history, and repeat-session behavior remain their separate later
+features. No later feature is claimed as complete.
 
 ## Data model
 
@@ -35,8 +44,42 @@ It does not add workout screens, workout API endpoints, or logging behavior.
 These tables provide the structure for later features, not those features'
 behavior. Appending new template versions rather than editing old versions will
 be implemented in the template feature. Foreign keys are not API authorization:
-future handlers must scope every read/write to the authenticated user and check
-ownership of all linked records, including exercise and workout-version IDs.
+session handlers derive the account from Clerk, scope reads/changes to that
+account, and validate any supplied exercise identity. New sessions cannot accept
+a client-assigned workout-version link; edits preserve an existing link.
+Future template handlers must also check ownership of linked versions.
+
+## Session API and verification
+
+`GET /api/sessions`, `POST /api/sessions`, and
+`GET / PUT / DELETE /api/sessions/:id` require a verified signed-in account.
+Saves atomically update session metadata, exercise snapshots, and sets.
+A failed replacement rolls back, retaining the old saved session. Editing one
+session never edits another session, its template versions, or the library's
+exercise names. Deleting one session does not delete its referenced history.
+Responses containing session or account data are marked `no-store`.
+
+Run the real-development-database API tests:
+
+```sh
+pnpm --filter @workspace/api-server run test
+pnpm run typecheck
+```
+
+The seven routine Vitest + Supertest tests use real PostgreSQL; only provider identity is
+substituted within the test process. Each fixture rolls back, even on failure.
+There is no test-login header or authentication bypass in the running app.
+Never run fixture tests against production.
+
+These are routine feature-safety checks, not the two separate assignment test
+deliverables. Both required tests come at the very end, after all 10 app features
+are complete; do not start their Issues, branches, or dedicated test work earlier.
+The required data-isolation scenario and dashboard-calculation
+scenario will each be added through their own Issue, branch, and PR, with the
+required explanation, failing/passing screenshots, and what-would-break-it
+sentence. No assignment Test A evidence needs to be attached to the feature 3 PR.
+See `prompts/crud.md` for the development log and the student-caught correction
+that separated the prematurely bundled assignment test from this feature.
 
 ## Tools and structure
 
@@ -85,8 +128,8 @@ dashboard tests.
 
 Published app: https://liftledgr-aidangilkerson.replit.app
 
-The currently published release is feature 1. Feature 2 schema changes are
-development-only until its PR is merged and the app is published again.
+The published app includes features 1 and 2. Feature 3 is development-only
+until its PR is reviewed, merged, and the app is published again.
 The student must merge each feature pull request before publishing its update.
 
 ## Verification boundaries

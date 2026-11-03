@@ -5,6 +5,80 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface SessionSetInput {
+  /**
+     * @minimum 0
+     * @maximum 2147483647
+     */
+  reps: number;
+}
+
+export interface SessionExerciseInput {
+  /** @minimum 1 */
+  exerciseId?: number;
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  exerciseName: string;
+  /**
+     * @minimum 0
+     * @maximum 99999999.99
+     */
+  weightLb: number;
+  /**
+     * @minItems 1
+     * @maxItems 100
+     */
+  sets: SessionSetInput[];
+}
+
+export interface SessionInput {
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  workoutName: string;
+  /** @pattern ^\d{4}-\d{2}-\d{2}$ */
+  date: string;
+  /**
+     * @maxLength 5000
+     * @nullable
+     */
+  notes: string | null;
+  /**
+     * @minItems 1
+     * @maxItems 50
+     */
+  exercises: SessionExerciseInput[];
+}
+
+export interface SessionSetRecord {
+  id: number;
+  setNumber: number;
+  reps: number;
+}
+
+export interface SessionExerciseRecord {
+  id: number;
+  exerciseId: number;
+  exerciseName: string;
+  weightLb: number;
+  position: number;
+  sets: SessionSetRecord[];
+}
+
+export interface WorkoutSessionRecord {
+  id: number;
+  /** @nullable */
+  workoutVersionId: number | null;
+  workoutName: string;
+  date: string;
+  /** @nullable */
+  notes: string | null;
+  exercises: SessionExerciseRecord[];
+}
+
 export interface AppUser {
   id: string;
   authId: string;
@@ -18,4 +92,29 @@ export interface ErrorResponse {
 export interface HealthStatus {
   status: string;
 }
+
+/**
+ * Verified email required
+ */
+export type ForbiddenResponse = ErrorResponse;
+
+/**
+ * Sign-in required
+ */
+export type UnauthorizedResponse = ErrorResponse;
+
+/**
+ * Invalid session data
+ */
+export type InvalidInputResponse = ErrorResponse;
+
+/**
+ * Record not found in the authenticated account
+ */
+export type NotFoundResponse = ErrorResponse;
+
+/**
+ * Account or session service temporarily unavailable
+ */
+export type UnavailableResponse = ErrorResponse;
 

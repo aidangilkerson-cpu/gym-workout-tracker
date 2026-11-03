@@ -46,8 +46,10 @@ A personal gym training journal built for a school assignment, one feature at a 
 ## Product
 
 - Feature 1 is merged and published: signup, login, logout, and a protected linked-account area.
-- Current approved scope: feature 2 only — database models and relationships from the original plan, applied and verified in development.
-- Workout CRUD screens, template editing, starring behavior, search, dashboard, and charts belong to later separate features. Their underlying tables do not constitute those features.
+- Feature 2 is merged and published; the nine production tables and their primary/foreign keys were verified read-only.
+- Current approved scope: feature 3 only — dated session create/read/update/delete, linked to the authenticated account, with confirmation before deletion.
+- Template editing, starring behavior, search, dashboard, and charts belong to later separate features. Their underlying tables do not constitute those features.
+- The basic session editor uses a set count and uniform reps per exercise. Individually editable per-set reps remain feature 9; preserve any already-saved differing reps when editing unrelated fields. **Why:** the assignment's feature order must remain intact without overwriting existing data.
 
 ## User preferences
 
@@ -55,6 +57,9 @@ A personal gym training journal built for a school assignment, one feature at a 
 
 - Work in the exact assignment order, not all features at once. Required features stay in assignment order; the three additional features come last.
 - Each feature follows GitHub Issue → branch from main → build and prompt log → PR → student merges → publish. Stop for user review before opening the current feature PR.
+- Keep the two assignment-required tests in their own separate GitHub Issues and PRs, distinct from feature PRs. **Why:** the student flagged this assignment requirement; routine feature verification does not replace those separate deliverables.
+- Do Test A and Test B at the very end, after all 10 app features are complete. Do not open either test's Issue, create its branch, or start its dedicated work earlier. Routine feature verification may continue during development. **Why:** the user explicitly clarified that both required tests belong at the end when the app is complete.
+- Each required test PR must include its Given/When/Then plain-English explanation, actual intentional-failure and restored-pass screenshots, one sentence describing a change that would break it, and any agent mistake the student caught (what happened, how noticed, how fixed). **Why:** these are explicit assignment evidence requirements, including credit for the student's judgement.
 - Never commit directly to the assignment repository's main branch. The student confirmed instructor approval only for the one-time initialization already completed.
 - Prompt logs must be structured development notes, not a dialogue between the user and agent. Preserve actual prompt and relevant response excerpts for reflection evidence.
 - Keep feature titles free of “extra #” labels.
