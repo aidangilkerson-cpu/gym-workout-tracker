@@ -4,9 +4,10 @@ import { Plus, Trash2 } from 'lucide-react';
 import { useUnsavedGuard } from '@/hooks/use-unsaved-guard';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { WeightInput } from '@/components/weight-input';
-import { PageFrame, errorMessage, errorStatus } from '@/components/session-shell';
-import { SetEditor } from '@/components/set-editor';
-import { blankExercise, createSessionDraft, draftFromRecord, draftSnapshot, draftToInput, appendDraftSet, removeDraftSet, updateDraftSet, type SessionDraft as Draft, type ExerciseDraft } from '@/lib/session-draft';
+import { PageFrame, errorMessage, errorStatus, formatDate } from '@/components/session-shell';
+import { SetEditor, refBadgeCls } from '@/components/set-editor';
+import type { SessionSeed } from '@/lib/session-seed';
+import { blankExercise, createSessionDraft, draftFromRecord, draftSnapshot, draftToInput, appendDraftSet, removeDraftSet, updateDraftSet, MAX_SETS, type SessionDraft as Draft, type ExerciseDraft } from '@/lib/session-draft';
 import { validateSessionDraft, sessionErrorsFromResponse, type FieldErrors } from '@/lib/session-validation';
 
 const inputCls = 'h-12 w-full rounded-xl border border-input bg-secondary px-3.5 text-base text-foreground placeholder:text-muted-foreground/70 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 disabled:opacity-60 aria-invalid:border-destructive aria-invalid:focus:border-destructive aria-invalid:focus:ring-destructive/25';
@@ -20,15 +21,34 @@ type Props = {
   mode: 'create' | 'edit';
   initial?: WorkoutSessionRecord;
   templateVersion?: WorkoutVersionRecord;
+  /** Create-only prefill (repeat or last-time). Pinned on first render. */
+  seed?: SessionSeed;
   cancelTo: string;
   onSubmit: (input: SessionInput) => Promise<WorkoutSessionRecord>;
 };
 
-export function SessionForm({ mode, initial, templateVersion, cancelTo, onSubmit }: Props) {
+export function SessionForm({ mode, initial, templateVersion, seed, cancelTo, onSubmit }: Props) {
   // Keep provenance and the seed together, even if a parent query refreshes.
   const pinnedTemplate = useRef(templateVersion).current;
+  const pinnedSeed = useRef(mode === 'create' ? seed : undefined).current;
+  const reference = pinnedSeed?.reference;
+  const refLabel = reference?.kind === 'repeat' ? 'Copied' : 'Last time';
+  const refDate = reference ? formatDate(reference.date) : '';
+  const sourceVersionId = pinnedSeed && pinnedSeed.workoutVersionId !== undefined ? pinnedSeed.workoutVersionId : pinnedTemplate?.id;
+  // Touched tracking by local keys (not value comparison); kept out of the payload/dirty snapshot.
+  const [touched, setTouched] = useState<{ weight: Set<number>; reps: Set<number>; count: Set<number> }>(() => ({ weight: new Set(), reps: new Set(), count: new Set() }));
+  const touch = (kind: 'weight' | 'reps' | 'count', key: number) => setTouched((t) => {
+    if (t[kind].has(key)) return t;
+    const next = new Set(t[kind]); next.add(key);
+    return { ...t, [kind]: next };
+  });
+  const touchExercise = (exercise: ExerciseDraft) => setTouched(t => ({
+    weight: new Set(t.weight).add(exercise.key),
+    count: new Set(t.count).add(exercise.key),
+    reps: new Set([...t.reps, ...exercise.sets.map(set => set.key)]),
+  }));
   const initialDraft = useMemo<Draft>(
-    () => (initial ? draftFromRecord(initial) : createSessionDraft(pinnedTemplate)),
+    () => (initial ? draftFromRecord(initial) : pinnedSeed?.draft ?? createSessionDraft(pinnedTemplate)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
@@ -90,7 +110,7 @@ export function SessionForm({ mode, initial, templateVersion, cancelTo, onSubmit
     try {
       const saved = await onSubmit({
         ...draftToInput(draft),
-        ...(mode === 'create' && pinnedTemplate ? { workoutVersionId: pinnedTemplate.id } : {}),
+        ...(mode === 'create' && sourceVersionId !== undefined ? { workoutVersionId: sourceVersionId } : {}),
       });
       baseline.current = draftSnapshot(draft);
       guard.go(`/sessions/${saved.id}`);
@@ -103,7 +123,9 @@ export function SessionForm({ mode, initial, templateVersion, cancelTo, onSubmit
         setFocusRequest((request) => request + 1);
       } else {
         const status = errorStatus(err);
-        setSaveError(status === undefined
+        setSaveError(status === 409 && mode === 'create' && sourceVersionId != null
+          ? `${errorMessage(err)} The source workout may be archived: restore it from Workouts, then save again. This draft stays linked to it.`
+          : status === undefined
           ? "We couldn't reach the server. Check your connection and try saving again."
           : status >= 500 ? "We couldn't save your session right now. Please try again."
           : errorMessage(err));
@@ -117,6 +139,15 @@ export function SessionForm({ mode, initial, templateVersion, cancelTo, onSubmit
       <h1 className="rise mt-3 text-4xl font-black uppercase leading-[0.9] md:text-6xl" style={{ animationDelay: '60ms' }}>
         {mode === 'create' ? 'Log a session.' : 'Fix the record.'}
       </h1>
+      {reference && (
+        <div className="mt-4 rounded-xl border border-primary/40 bg-primary/5 p-4 text-sm" data-testid="text-session-reference">
+          {reference.kind === 'repeat' ? (
+            <p><span className="font-bold text-foreground">Repeating {refDate}.</span> <span className="text-muted-foreground">The new date defaults to today; the original stays unchanged. Copied numbers are suggestions and nothing is logged until you save.</span></p>
+          ) : (
+            <p><span className="font-bold text-foreground">Prefilled from last time, {refDate}.</span> <span className="text-muted-foreground">Numbers are suggestions from that session; nothing is logged until you save.</span></p>
+          )}
+        </div>
+      )}
       {pinnedTemplate && (
         <p className="mt-4 rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground" data-testid="text-session-template-version">
           From {pinnedTemplate.workoutName}, version {pinnedTemplate.versionNumber}.
@@ -183,7 +214,7 @@ export function SessionForm({ mode, initial, templateVersion, cancelTo, onSubmit
                         required
                         maxLength={120}
                         value={ex.exerciseName}
-                        onChange={(e) => patchEx(ex.key, { exerciseName: e.target.value, exerciseId: undefined })}
+                        onChange={(e) => { touchExercise(ex); patchEx(ex.key, { exerciseName: e.target.value, exerciseId: undefined }); }}
                         placeholder="Bench press"
                         className={inputCls}
                         data-testid={`input-exercise-name-${i}`}
@@ -193,7 +224,13 @@ export function SessionForm({ mode, initial, templateVersion, cancelTo, onSubmit
                     </div>
                     <div>
                       <label htmlFor={`${id}-weight`} className={labelCls}>Weight (lb, all sets)</label>
-                      <WeightInput id={`${id}-weight`} value={ex.weightLb} onValueChange={(value) => patchEx(ex.key, { weightLb: value })} className={inputCls} testId={`input-weight-${i}`} invalid={Boolean(errors[`${path}.weightLb`])} describedBy={errors[`${path}.weightLb`] ? `${id}-weight-error` : undefined} />
+                      <WeightInput id={`${id}-weight`} value={ex.weightLb} onValueChange={(value) => { touch('weight', ex.key); patchEx(ex.key, { weightLb: value }); }} className={inputCls} testId={`input-weight-${i}`} invalid={Boolean(errors[`${path}.weightLb`])} describedBy={[
+                        errors[`${path}.weightLb`] ? `${id}-weight-error` : null,
+                        reference?.exercisesByKey[ex.key] && !touched.weight.has(ex.key) ? `${id}-weight-ref` : null,
+                      ].filter(Boolean).join(' ') || undefined} />
+                      {reference?.exercisesByKey[ex.key] && !touched.weight.has(ex.key) && (
+                        <p className="mt-1.5"><span id={`${id}-weight-ref`} className={refBadgeCls} data-testid={`text-last-weight-${i}`}>{refLabel} {refDate}: {reference.exercisesByKey[ex.key].weightLb} lb</span></p>
+                      )}
                       <FieldError id={`${id}-weight-error`} message={errors[`${path}.weightLb`]} />
                     </div>
                   </div>
@@ -205,9 +242,14 @@ export function SessionForm({ mode, initial, templateVersion, cancelTo, onSubmit
                     errors={errors}
                     disabled={saving}
                     inputCls={inputCls}
-                    onAdd={() => mapEx(ex.key, appendDraftSet)}
-                    onRemove={(k) => mapEx(ex.key, (x) => removeDraftSet(x, k))}
-                    onChange={(k, reps) => mapEx(ex.key, (x) => updateDraftSet(x, k, reps))}
+                    onAdd={() => { if (ex.sets.length < MAX_SETS) touch('count', ex.key); mapEx(ex.key, appendDraftSet); }}
+                    onRemove={(k) => { if (ex.sets.length > 1) touch('count', ex.key); mapEx(ex.key, (x) => removeDraftSet(x, k)); }}
+                    onChange={(k, reps) => { touch('reps', k); mapEx(ex.key, (x) => updateDraftSet(x, k, reps)); }}
+                    previous={reference?.exercisesByKey[ex.key]}
+                    refLabel={refLabel}
+                    refDate={refDate}
+                    editedSetKeys={touched.reps}
+                    countTouched={touched.count.has(ex.key)}
                   />
                 </li>
               );

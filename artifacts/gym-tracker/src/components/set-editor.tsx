@@ -1,7 +1,10 @@
 import { useEffect, useRef } from 'react';
 import { Minus, Plus } from 'lucide-react';
 import { MAX_SETS, type ExerciseDraft } from '@/lib/session-draft';
+import type { PreviousExercise } from '@/lib/session-seed';
 import type { FieldErrors } from '@/lib/session-validation';
+
+export const refBadgeCls = 'inline-flex max-w-full items-center gap-1 truncate rounded-md border border-primary/30 bg-primary/10 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-primary';
 
 type Props = {
   exercise: ExerciseDraft;
@@ -14,9 +17,15 @@ type Props = {
   onAdd: () => void;
   onRemove: (setKey: number) => void;
   onChange: (setKey: number, reps: string) => void;
+  /** Suggestion-only reference values; never part of the payload. */
+  previous?: PreviousExercise;
+  refLabel?: string;
+  refDate?: string;
+  editedSetKeys?: ReadonlySet<number>;
+  countTouched?: boolean;
 };
 
-export function SetEditor({ exercise, index, idBase, exerciseLabel, errors, disabled, inputCls, onAdd, onRemove, onChange }: Props) {
+export function SetEditor({ exercise, index, idBase, exerciseLabel, errors, disabled, inputCls, onAdd, onRemove, onChange, previous, refLabel, refDate, editedSetKeys, countTouched }: Props) {
   const path = `exercises.${index}`;
   const count = exercise.sets.length;
   const atMax = count >= MAX_SETS;
@@ -44,15 +53,26 @@ export function SetEditor({ exercise, index, idBase, exerciseLabel, errors, disa
     <div className="mt-5 border-t border-border pt-4">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Sets and reps</h3>
-        <p id={hintId} className="font-mono text-xs text-muted-foreground" data-testid={`text-set-count-${index}`} aria-live="polite">
-          {count} of {MAX_SETS} sets{atMax ? ' (limit reached)' : ''}
-        </p>
+        <div className="flex flex-wrap items-baseline gap-2">
+          {previous && !countTouched && (
+            <span className={refBadgeCls} data-testid={`text-last-count-${index}`} title={`${refLabel} on ${refDate}`}>
+              {refLabel} {refDate}: {previous.setCount} {previous.setCount === 1 ? 'set' : 'sets'}
+            </span>
+          )}
+          <p id={hintId} className="font-mono text-xs text-muted-foreground" data-testid={`text-set-count-${index}`} aria-live="polite">
+            {count} of {MAX_SETS} sets{atMax ? ' (limit reached)' : ''}
+          </p>
+        </div>
       </div>
       <ol className="space-y-2" aria-label={`Sets for ${exerciseLabel}`}>
         {exercise.sets.map((set, j) => {
           const inputId = `${idBase}-set-${set.key}`;
           const err = errors[`${path}.sets.${j}.reps`];
           const errId = `${inputId}-error`;
+          const prevReps = previous?.repsByKey[set.key];
+          const showRef = prevReps !== undefined && !editedSetKeys?.has(set.key);
+          const refId = `${inputId}-ref`;
+          const described = [err ? errId : null, showRef ? refId : null].filter(Boolean).join(' ') || undefined;
           return (
             <li key={set.key} data-testid={`row-set-${index}-${j}`}>
               <div className="flex items-center gap-2">
@@ -75,7 +95,7 @@ export function SetEditor({ exercise, index, idBase, exerciseLabel, errors, disa
                   className={`${inputCls} min-w-0 flex-1`}
                   data-testid={`input-reps-${index}-${j}`}
                   aria-invalid={Boolean(err)}
-                  aria-describedby={err ? errId : undefined}
+                  aria-describedby={described}
                 />
                 <button
                   type="button"
@@ -93,6 +113,13 @@ export function SetEditor({ exercise, index, idBase, exerciseLabel, errors, disa
                   <Minus className="h-4 w-4" aria-hidden="true" />
                 </button>
               </div>
+              {showRef && (
+                <p className="ml-[4.5rem] mt-1">
+                  <span id={refId} className={refBadgeCls} data-testid={`text-last-reps-${index}-${j}`}>
+                    {refLabel} {refDate}: {prevReps} reps
+                  </span>
+                </p>
+              )}
               {err && <p id={errId} className="ml-[4.5rem] mt-1 text-sm text-destructive" data-testid={`${idBase}-set-${j}-error`}>{err}</p>}
             </li>
           );
