@@ -118,6 +118,7 @@ describe("Session API with real PostgreSQL (fixtures always rolled back)", () =>
       await request(app).get("/api/sessions/1").expect(401);
       await request(app).put("/api/sessions/1").send(input()).expect(401);
       await request(app).delete("/api/sessions/1").expect(401);
+      await request(app).put("/api/sessions/1/star").send({ starred: true }).expect(401);
     });
   });
 
@@ -189,6 +190,87 @@ describe("Session API with real PostgreSQL (fixtures always rolled back)", () =>
         .send({ ...data, notes: "New notes only" }).expect(200);
       expect(updated.body.workoutVersionId).toBe(version.id);
       expect(updated.body.exercises[0].sets.map((set: { reps: number }) => set.reps)).toEqual([10, 8, 6]);
+    });
+  });
+
+  it("stars and unstars idempotently using one junction row and preserves stars across session edits", async () => {
+    await fixture(async ({ app, tx, a }) => {
+      const first = await create(app, a);
+      const second = await create(app, a);
+      expect(first.starred).toBe(false);
+      for (let i = 0; i < 2; i++) {
+        const result = await request(app).put(`/api/sessions/${first.id}/star`)
+          .set("x-test-account", a).send({ starred: true }).expect(200);
+        expect(result.body).toEqual({ ...first, starred: true });
+      }
+      expect(await tx.select().from(starsTable).where(eq(starsTable.sessionId, first.id))).toHaveLength(1);
+      const favorites = await request(app).get("/api/sessions?starredOnly=true").set("x-test-account", a).expect(200);
+      expect(favorites.body.map((s: { id: number }) => s.id)).toEqual([first.id]);
+      const all = await request(app).get("/api/sessions?starredOnly=false").set("x-test-account", a).expect(200);
+      expect(all.body.map((s: { id: number }) => s.id)).toEqual([second.id, first.id]);
+      const edited = await request(app).put(`/api/sessions/${first.id}`)
+        .set("x-test-account", a).send({ ...input(), notes: "Changed notes" }).expect(200);
+      expect(edited.body.starred).toBe(true);
+      for (let i = 0; i < 2; i++) {
+        const result = await request(app).put(`/api/sessions/${first.id}/star`)
+          .set("x-test-account", a).send({ starred: false }).expect(200);
+        expect(result.body.starred).toBe(false);
+        expect(result.body.notes).toBe("Changed notes");
+      }
+      expect(await tx.select().from(starsTable).where(eq(starsTable.sessionId, first.id))).toHaveLength(0);
+      expect((await request(app).get("/api/sessions?starredOnly=true").set("x-test-account", a).expect(200)).body).toEqual([]);
+      expect((await request(app).get("/api/sessions").set("x-test-account", a).expect(200)).body).toHaveLength(2);
+    });
+  });
+
+  it("scopes star writes and starred-only reads to the authenticated owner", async () => {
+    await fixture(async ({ app, tx, a, b }) => {
+      const own = await create(app, a);
+      const other = await create(app, b);
+      await request(app).put(`/api/sessions/${own.id}/star`).set("x-test-account", a)
+        .send({ starred: true, userId: b }).expect(200);
+      for (const starred of [true, false]) {
+        await request(app).put(`/api/sessions/${own.id}/star`).set("x-test-account", b)
+          .send({ starred }).expect(404);
+      }
+      await request(app).put(`/api/sessions/${other.id}/star`).set("x-test-account", b)
+        .send({ starred: true }).expect(200);
+      const result = await request(app).get("/api/sessions?starredOnly=true")
+        .set("x-test-account", b).expect(200);
+      expect(result.body.map((s: { id: number }) => s.id)).toEqual([other.id]);
+      expect(await tx.select().from(starsTable).where(eq(starsTable.sessionId, own.id)))
+        .toMatchObject([{ userId: a, sessionId: own.id }]);
+      expect((await request(app).get(`/api/sessions/${own.id}`).set("x-test-account", a).expect(200)).body.starred).toBe(true);
+    });
+  });
+
+  it("rejects malformed star preferences and filters without changing saved stars", async () => {
+    await fixture(async ({ app, a }) => {
+      const saved = await create(app, a);
+      for (const data of [{}, { starred: "true" }, { starred: 1 }, { starred: null }]) {
+        await request(app).put(`/api/sessions/${saved.id}/star`).set("x-test-account", a).send(data).expect(400);
+      }
+      await request(app).put("/api/sessions/not-an-id/star").set("x-test-account", a).send({ starred: true }).expect(404);
+      await request(app).put("/api/sessions/2147483647/star").set("x-test-account", a).send({ starred: true }).expect(404);
+      await request(app).get("/api/sessions?starredOnly=invalid").set("x-test-account", a).expect(400);
+      expect((await request(app).get(`/api/sessions/${saved.id}`).set("x-test-account", a).expect(200)).body).toEqual(saved);
+    });
+  });
+
+  it("returns a safe service error on failed star writes and allows an idempotent retry", async () => {
+    await fixture(async ({ app, tx, a }) => {
+      const saved = await create(app, a);
+      const spy = vi.spyOn(tx, "transaction").mockRejectedValueOnce(new Error("Internal fixture error: do not expose"));
+      try {
+        const failure = await request(app).put(`/api/sessions/${saved.id}/star`)
+          .set("x-test-account", a).send({ starred: true }).expect(503);
+        expect(JSON.stringify(failure.body)).not.toContain("Internal fixture");
+      } finally {
+        spy.mockRestore();
+      }
+      expect((await request(app).get(`/api/sessions/${saved.id}`).set("x-test-account", a).expect(200)).body.starred).toBe(false);
+      expect((await request(app).put(`/api/sessions/${saved.id}/star`).set("x-test-account", a)
+        .send({ starred: true }).expect(200)).body.starred).toBe(true);
     });
   });
 

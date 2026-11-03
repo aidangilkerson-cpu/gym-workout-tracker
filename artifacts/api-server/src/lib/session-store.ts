@@ -1,6 +1,6 @@
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import {
-  db, usersTable, exercisesTable, sessionsTable, sessionExercisesTable, setsTable,
+  db, usersTable, exercisesTable, sessionsTable, sessionExercisesTable, setsTable, starsTable,
 } from "@workspace/db";
 import type { SessionInput } from "@workspace/api-zod";
 
@@ -17,18 +17,53 @@ const contents = {
   },
 };
 
-export async function listOwnedSessions(database: SessionDatabase, userId: string) {
-  return database.query.sessionsTable.findMany({
-    where: eq(sessionsTable.userId, userId),
+function sessionContents(userId: string) {
+  return { ...contents, stars: { columns: { id: true } as const, where: eq(starsTable.userId, userId) } };
+}
+
+function withStarState<T extends { stars: { id: number }[] }>(session: T) {
+  const { stars, ...record } = session;
+  return { ...record, starred: stars.length > 0 };
+}
+
+export async function listOwnedSessions(database: SessionDatabase, userId: string, starredOnly = false) {
+  const sessions = await database.query.sessionsTable.findMany({
+    where: and(
+      eq(sessionsTable.userId, userId),
+      starredOnly ? inArray(sessionsTable.id, database.select({ id: starsTable.sessionId })
+        .from(starsTable).where(eq(starsTable.userId, userId))) : undefined,
+    ),
     orderBy: [desc(sessionsTable.date), desc(sessionsTable.id)],
-    with: contents,
+    with: sessionContents(userId),
   });
+  return sessions.map(withStarState);
 }
 
 export async function getOwnedSession(database: SessionDatabase, userId: string, id: number) {
-  return database.query.sessionsTable.findFirst({
+  const session = await database.query.sessionsTable.findFirst({
     where: and(eq(sessionsTable.userId, userId), eq(sessionsTable.id, id)),
-    with: contents,
+    with: sessionContents(userId),
+  });
+  return session ? withStarState(session) : undefined;
+}
+
+export async function setOwnedSessionStar(database: SessionDatabase, userId: string, id: number, starred: boolean) {
+  return database.transaction(async (tx) => {
+    // Match session saves' account → session lock order, including FK checks,
+    // so starring and editing concurrently cannot acquire those locks in reverse.
+    await tx.select({ id: usersTable.id }).from(usersTable)
+      .where(eq(usersTable.id, userId)).for("update");
+    const [owned] = await tx.select({ id: sessionsTable.id }).from(sessionsTable)
+      .where(and(eq(sessionsTable.id, id), eq(sessionsTable.userId, userId))).for("update");
+    if (!owned) throw new SessionNotFound();
+    if (starred) {
+      await tx.insert(starsTable).values({ userId, sessionId: id }).onConflictDoNothing({
+        target: [starsTable.userId, starsTable.sessionId],
+      });
+    } else {
+      await tx.delete(starsTable).where(and(eq(starsTable.userId, userId), eq(starsTable.sessionId, id)));
+    }
+    return getOwnedSession(tx, userId, id);
   });
 }
 

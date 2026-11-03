@@ -30,8 +30,10 @@ import type {
   ForbiddenResponse,
   HealthStatus,
   InvalidInputResponse,
+  ListSessionsParams,
   NotFoundResponse,
   SessionInput,
+  StarPreference,
   UnauthorizedResponse,
   UnavailableResponse,
   WorkoutSessionRecord
@@ -64,20 +66,27 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export const getListSessionsUrl = () => {
+export const getListSessionsUrl = (params?: ListSessionsParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/sessions`
+  return stringifiedParams.length > 0 ? `/api/sessions?${stringifiedParams}` : `/api/sessions`
 }
 
 /**
  * @summary List only the authenticated user's saved sessions
  */
-export const listSessions = async ( options?: Parameters<typeof customFetch>[1]): Promise<WorkoutSessionRecord[]> => {
+export const listSessions = async (params?: ListSessionsParams, options?: Parameters<typeof customFetch>[1]): Promise<WorkoutSessionRecord[]> => {
 
-  return customFetch<WorkoutSessionRecord[]>(getListSessionsUrl(),
+  return customFetch<WorkoutSessionRecord[]>(getListSessionsUrl(params),
   {
     ...options,
     method: 'GET'
@@ -90,23 +99,23 @@ export const listSessions = async ( options?: Parameters<typeof customFetch>[1])
 
 
 
-export const getListSessionsQueryKey = () => {
+export const getListSessionsQueryKey = (params?: ListSessionsParams,) => {
     return [
-    `/api/sessions`
+    `/api/sessions`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getListSessionsQueryOptions = <TData = Awaited<ReturnType<typeof listSessions>>, TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | UnavailableResponse>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listSessions>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getListSessionsQueryOptions = <TData = Awaited<ReturnType<typeof listSessions>>, TError = ErrorType<InvalidInputResponse | UnauthorizedResponse | ForbiddenResponse | UnavailableResponse>>(params?: ListSessionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listSessions>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListSessionsQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getListSessionsQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listSessions>>> = ({ signal }) => listSessions({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listSessions>>> = ({ signal }) => listSessions(params, { signal, ...requestOptions });
 
 
 
@@ -116,11 +125,11 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type ListSessionsQueryResult = NonNullable<Awaited<ReturnType<typeof listSessions>>>
-export type ListSessionsQueryError = ErrorType<UnauthorizedResponse | ForbiddenResponse | UnavailableResponse>
+export type ListSessionsQueryError = ErrorType<InvalidInputResponse | UnauthorizedResponse | ForbiddenResponse | UnavailableResponse>
 
 
-export function useListSessions<TData = Awaited<ReturnType<typeof listSessions>>, TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | UnavailableResponse>>(
-  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listSessions>>, TError, TData>> & Pick<
+export function useListSessions<TData = Awaited<ReturnType<typeof listSessions>>, TError = ErrorType<InvalidInputResponse | UnauthorizedResponse | ForbiddenResponse | UnavailableResponse>>(
+ params: undefined |  ListSessionsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listSessions>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listSessions>>,
           TError,
@@ -129,8 +138,8 @@ export function useListSessions<TData = Awaited<ReturnType<typeof listSessions>>
       >, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListSessions<TData = Awaited<ReturnType<typeof listSessions>>, TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | UnavailableResponse>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listSessions>>, TError, TData>> & Pick<
+export function useListSessions<TData = Awaited<ReturnType<typeof listSessions>>, TError = ErrorType<InvalidInputResponse | UnauthorizedResponse | ForbiddenResponse | UnavailableResponse>>(
+ params?: ListSessionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listSessions>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listSessions>>,
           TError,
@@ -139,20 +148,20 @@ export function useListSessions<TData = Awaited<ReturnType<typeof listSessions>>
       >, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useListSessions<TData = Awaited<ReturnType<typeof listSessions>>, TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | UnavailableResponse>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listSessions>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export function useListSessions<TData = Awaited<ReturnType<typeof listSessions>>, TError = ErrorType<InvalidInputResponse | UnauthorizedResponse | ForbiddenResponse | UnavailableResponse>>(
+ params?: ListSessionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listSessions>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary List only the authenticated user's saved sessions
  */
 
-export function useListSessions<TData = Awaited<ReturnType<typeof listSessions>>, TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | UnavailableResponse>>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listSessions>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export function useListSessions<TData = Awaited<ReturnType<typeof listSessions>>, TError = ErrorType<InvalidInputResponse | UnauthorizedResponse | ForbiddenResponse | UnavailableResponse>>(
+ params?: ListSessionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listSessions>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getListSessionsQueryOptions(options)
+  const queryOptions = getListSessionsQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -515,6 +524,95 @@ export const useDeleteSession = <TError = ErrorType<UnauthorizedResponse | Forbi
         TContext
       > => {
       return useMutation(getDeleteSessionMutationOptions(options), queryClient);
+    }
+
+export const getSetSessionStarUrl = (id: number,) => {
+
+
+
+
+  return `/api/sessions/${id}/star`
+}
+
+/**
+ * @summary Set or clear a star on an owned session idempotently
+ */
+export const setSessionStar = async (id: number,
+    starPreference: StarPreference, options?: Parameters<typeof customFetch>[1]): Promise<WorkoutSessionRecord> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<WorkoutSessionRecord>(getSetSessionStarUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(starPreference)
+  }
+);}
+
+
+
+
+
+export const getSetSessionStarMutationKey = () => ['setSessionStar'] as const;
+
+export const getSetSessionStarMutationOptions = <TError = ErrorType<InvalidInputResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | UnavailableResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setSessionStar>>, TError,SetSessionStarMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setSessionStar>>, TError,SetSessionStarMutationVariables, TContext> => {
+
+const mutationKey = getSetSessionStarMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setSessionStar>>, SetSessionStarMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  setSessionStar(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetSessionStarMutationResult = NonNullable<Awaited<ReturnType<typeof setSessionStar>>>
+    export type SetSessionStarMutationBody = BodyType<StarPreference>
+    export type SetSessionStarMutationError = ErrorType<InvalidInputResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | UnavailableResponse>
+    export type SetSessionStarMutationVariables = {id: number;data: BodyType<StarPreference>}
+
+    /**
+ * @summary Set or clear a star on an owned session idempotently
+ */
+export const useSetSessionStar = <TError = ErrorType<InvalidInputResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | UnavailableResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setSessionStar>>, TError,SetSessionStarMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof setSessionStar>>,
+        TError,
+        SetSessionStarMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSetSessionStarMutationOptions(options), queryClient);
     }
 
 export const getGetCurrentUserUrl = () => {

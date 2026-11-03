@@ -2,12 +2,12 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
 import {
   CreateSessionBody, UpdateSessionBody, GetSessionParams,
-  GetSessionResponse, ListSessionsResponse,
+  GetSessionResponse, ListSessionsResponse, ListSessionsQueryParams, SetSessionStarBody,
 } from "@workspace/api-zod";
 import { getApplicationAccount } from "../lib/application-account";
 import { sessionFieldErrors } from "../lib/session-validation";
 import {
-  listOwnedSessions, getOwnedSession, saveOwnedSession, deleteOwnedSession,
+  listOwnedSessions, getOwnedSession, saveOwnedSession, deleteOwnedSession, setOwnedSessionStar,
   SessionNotFound, type SessionDatabase,
 } from "../lib/session-store";
 
@@ -39,8 +39,13 @@ export function createSessionsRouter(database: SessionDatabase = db): IRouter {
   }
 
   router.get("/sessions", async (req, res) => {
+    const query = ListSessionsQueryParams.safeParse(req.query);
+    if (!query.success) {
+      res.status(400).json({ error: "Choose All sessions or Starred only." });
+      return;
+    }
     try {
-      res.json(ListSessionsResponse.parse(await listOwnedSessions(database, res.locals.accountId)));
+      res.json(ListSessionsResponse.parse(await listOwnedSessions(database, res.locals.accountId, query.data.starredOnly === "true")));
     } catch (error) { failure(req, res, error); }
   });
   router.get("/sessions/:id", async (req, res) => {
@@ -69,6 +74,19 @@ export function createSessionsRouter(database: SessionDatabase = db): IRouter {
   };
   router.post("/sessions", save(false));
   router.put("/sessions/:id", save(true));
+  router.put("/sessions/:id/star", async (req, res) => {
+    const id = parseId(req, res);
+    if (id === null) return;
+    const parsed = SetSessionStarBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Choose whether this session should be starred." });
+      return;
+    }
+    try {
+      const session = await setOwnedSessionStar(database, res.locals.accountId, id, parsed.data.starred);
+      res.json(GetSessionResponse.parse(session));
+    } catch (error) { failure(req, res, error); }
+  });
   router.delete("/sessions/:id", async (req, res) => {
     const id = parseId(req, res);
     if (id === null) return;

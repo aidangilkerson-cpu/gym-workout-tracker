@@ -1,47 +1,57 @@
-import { Link } from 'wouter';
+import { Link, useSearch } from 'wouter';
 import { useListSessions, getListSessionsQueryKey } from '@workspace/api-client-react';
 import { ArrowRight, Plus } from 'lucide-react';
 import { AccountGate, ErrorPanel, PageFrame, SkeletonBlock, errorMessage, formatDate } from '@/components/session-shell';
+import { SessionStar } from '@/components/session-star';
 
 function SessionList() {
-  const list = useListSessions({ query: { queryKey: getListSessionsQueryKey(), refetchOnMount: 'always' } });
+  const search = useSearch();
+  const starredOnly = new URLSearchParams(search).get('view') === 'starred';
+  const params = starredOnly ? { starredOnly: 'true' as const } : undefined;
+  const list = useListSessions(params, { query: { queryKey: getListSessionsQueryKey(params), refetchOnMount: 'always' } });
+  const filters = (
+    <nav aria-label="Session views" className="mb-6 flex flex-wrap gap-2">
+      <Link href="/sessions" aria-current={!starredOnly ? 'page' : undefined} className={`inline-flex min-h-12 items-center rounded-xl border px-4 font-semibold ${!starredOnly ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card hover:border-primary'}`} data-testid="filter-all-sessions">All sessions</Link>
+      <Link href="/sessions?view=starred" aria-current={starredOnly ? 'page' : undefined} className={`inline-flex min-h-12 items-center rounded-xl border px-4 font-semibold ${starredOnly ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card hover:border-primary'}`} data-testid="filter-starred-sessions">Starred only</Link>
+    </nav>
+  );
 
-  if (list.isLoading) return <SkeletonBlock testid="status-sessions-loading" />;
+  if (list.isLoading) return <>{filters}<SkeletonBlock testid="status-sessions-loading" /></>;
   if (list.isError) {
     return (
-      <ErrorPanel
+      <>{filters}<ErrorPanel
         title="Your sessions did not load."
         message={errorMessage(list.error)}
         onRetry={() => list.refetch()}
         retrying={list.isFetching}
         testid="status-sessions-error"
-      />
+      /></>
     );
   }
   const sessions = [...(list.data ?? [])].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : b.id - a.id));
 
   if (sessions.length === 0) {
     return (
-      <div className="rounded-3xl border border-dashed border-border bg-card/60 p-8 text-center md:p-12" data-testid="status-sessions-empty">
+      <>{filters}<div className="rounded-3xl border border-dashed border-border bg-card/60 p-8 text-center md:p-12" data-testid={starredOnly ? 'status-starred-empty' : 'status-sessions-empty'}>
         <p className="font-mono text-xs uppercase tracking-[0.3em] text-muted-foreground">Ledger empty</p>
-        <h2 className="mt-3 text-3xl font-black uppercase">No sessions yet.</h2>
-        <p className="mx-auto mt-2 max-w-sm text-muted-foreground">Log today's lift and it lands here, dated and private to you.</p>
-        <Link href="/sessions/new" className="mt-6 inline-flex h-14 items-center gap-2 rounded-2xl bg-primary px-6 font-bold text-primary-foreground" data-testid="link-new-session-empty">
-          <Plus className="h-5 w-5" /> Log first session
+        <h2 className="mt-3 text-3xl font-black uppercase">{starredOnly ? 'No starred sessions yet.' : 'No sessions yet.'}</h2>
+        <p className="mx-auto mt-2 max-w-sm text-muted-foreground">{starredOnly ? 'Star a session to keep a favorite here. Unstarring never deletes the session.' : "Log today's lift and it lands here, dated and private to you."}</p>
+        <Link href={starredOnly ? '/sessions' : '/sessions/new'} className="mt-6 inline-flex min-h-14 items-center gap-2 rounded-2xl bg-primary px-6 py-3 font-bold text-primary-foreground" data-testid="link-new-session-empty">
+          {!starredOnly && <Plus className="h-5 w-5" />} {starredOnly ? 'See all sessions' : 'Log first session'}
         </Link>
-      </div>
+      </div></>
     );
   }
 
   return (
-    <ul className="space-y-3" data-testid="list-sessions">
+    <>{filters}<ul className="space-y-3" data-testid="list-sessions">
       {sessions.map((s, i) => {
         const sets = s.exercises.reduce((n, ex) => n + ex.sets.length, 0);
         return (
-          <li key={s.id} className="rise" style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}>
+          <li key={s.id} className="rise rounded-2xl border border-border bg-card" style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}>
             <Link
               href={`/sessions/${s.id}`}
-              className="group flex items-center gap-4 rounded-2xl border border-border bg-card p-5 transition-colors hover:border-primary/60"
+              className="group flex items-center gap-4 rounded-t-2xl p-5 transition-colors hover:bg-primary/5"
               data-testid={`link-session-${s.id}`}
             >
               <div className="w-1 self-stretch rounded-full bg-primary/70 transition-transform group-hover:scale-y-110" />
@@ -54,10 +64,13 @@ function SessionList() {
               </div>
               <ArrowRight className="h-5 w-5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
             </Link>
+            <div className="px-5 pb-4">
+              <SessionStar id={s.id} starred={s.starred} name={s.workoutName} />
+            </div>
           </li>
         );
       })}
-    </ul>
+    </ul></>
   );
 }
 

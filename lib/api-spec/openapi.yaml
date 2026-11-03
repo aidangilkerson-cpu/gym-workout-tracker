@@ -16,6 +16,13 @@ paths:
       operationId: listSessions
       tags: [sessions]
       summary: List only the authenticated user's saved sessions
+      parameters:
+        - name: starredOnly
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: ["true", "false"]
       responses:
         "200":
           description: Saved sessions, newest first
@@ -25,6 +32,8 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/WorkoutSessionRecord"
+        "400":
+          $ref: "#/components/responses/InvalidInput"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -119,6 +128,41 @@ paths:
       responses:
         "204":
           description: Deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+  /sessions/{id}/star:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+    put:
+      operationId: setSessionStar
+      tags: [sessions]
+      summary: Set or clear a star on an owned session idempotently
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StarPreference"
+      responses:
+        "200":
+          description: Session with its saved star state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkoutSessionRecord"
+        "400":
+          $ref: "#/components/responses/InvalidInput"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -282,10 +326,18 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/SessionSetRecord"
+    StarPreference:
+      type: object
+      required: [starred]
+      properties:
+        starred:
+          type: boolean
     WorkoutSessionRecord:
       type: object
-      required: [id, workoutVersionId, workoutName, date, notes, exercises]
+      required: [id, workoutVersionId, workoutName, date, notes, exercises, starred]
       properties:
+        starred:
+          type: boolean
         id:
           type: integer
         workoutVersionId:

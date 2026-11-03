@@ -7,8 +7,8 @@ exception. Planning and feature work follow linked Issues, branches, and pull re
 
 ## Current feature
 
-Features 1–3 are merged and published: Clerk accounts, the nine-table workout
-data model, and saved workout sessions.
+Features 1–4 are merged and published: Clerk accounts, the nine-table workout
+data model, saved workout sessions, and friendly validation.
 
 **Feature 3: session create / read / update / delete.**
 Signed-in users can save dated sessions with exercise entries, read
@@ -19,20 +19,28 @@ editor, a set count with the same reps for every set.
 The published weight-arrow fix uses **1 lb per click**, preserving typed
 decimal weights. Keyboard ArrowUp/ArrowDown use the same increment.
 
-This branch implements **feature 4: Validation** in development: inline
+The published **feature 4: Validation** includes inline
 field-specific errors in create/edit forms, accessible first-error focus,
 safe server validation feedback, and draft retention after failed saves.
-Invalid submissions do not overwrite existing saved sessions. The feature is
-not published until its own PR is reviewed and merged.
+Invalid submissions do not overwrite existing saved sessions.
 Routine checks and one signed-in mobile error/retry journey passed, including
 retained drafts on HTTP 503, mapped server field errors, and successful
 corrected saves. See `prompts/validation.md` for actual verification details.
+
+This branch implements **feature 5: Stars** in development. Star or unstar an
+owned session from its list card or detail screen. Choose **Starred only** to
+view favorites or **All sessions** to return. The selected view stays in the
+URL on reload. Stars persist in the existing shared junction table; removing
+a star never deletes the session. Failed saves show an unconfirmed-change
+message and permit retry without falsely changing the displayed saved state.
+This feature is not published until its separately approved PR is reviewed
+and merged. See `prompts/stars.md` for development and verification details.
 
 The account screen links to `/sessions`; create, detail, and edit routes are
 `/sessions/new`, `/sessions/:id`, and `/sessions/:id/edit`.
 Advanced individually editable per-set reps remain feature 9. If existing saved
 reps differ, this editor preserves them unless sets/reps are explicitly changed.
-Stars, search/sort, dashboards, reusable templates
+Search/sort, dashboards, reusable templates
 with version history, and repeat-session behavior remain their separate later
 features. No later feature is claimed as complete.
 
@@ -65,6 +73,11 @@ Future template handlers must also check ownership of linked versions.
 
 `GET /api/sessions`, `POST /api/sessions`, and
 `GET / PUT / DELETE /api/sessions/:id` require a verified signed-in account.
+Feature 5 adds `PUT /api/sessions/:id/star` with a required boolean `starred`,
+and `GET /api/sessions?starredOnly=true` for owned favorites. Omitting the
+filter or using `starredOnly=false` lists all owned sessions. Responses include
+the server-derived `starred` state; identity is never taken from request input.
+Repeated star or unstar requests are idempotent and cannot create duplicates.
 Saves atomically update session metadata, exercise snapshots, and sets.
 A failed replacement rolls back, retaining the old saved session. Editing one
 session never edits another session, its template versions, or the library's
@@ -79,7 +92,7 @@ pnpm --filter @workspace/gym-tracker exec node --test test/weight-step.test.mjs 
 pnpm run typecheck
 ```
 
-The nine routine Vitest + Supertest tests use real PostgreSQL; only provider identity is
+The thirteen routine Vitest + Supertest tests use real PostgreSQL; only provider identity is
 substituted within the test process. Each fixture rolls back, even on failure.
 There is no test-login header or authentication bypass in the running app.
 Never run fixture tests against production.
