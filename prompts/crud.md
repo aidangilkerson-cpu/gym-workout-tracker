@@ -138,7 +138,10 @@ bundled test. It is not claimed as completion of the separate test deliverable.
 No history was rewritten to hide the mistake. The separate test must be added
 and demonstrated through its own authorized Issue/branch/PR, with fresh
 red/green evidence and this student-caught correction described in that PR.
-Dashboard test B remains separate too and requires the dashboard to exist.
+The student further clarified: “test A and B should be done at the very end
+when the app is complete.” Both required test workflows therefore wait until
+all 10 app features are complete, not merely until sessions or the dashboard
+exist. Routine feature verification can continue in the meantime.
 
 ## Verification results
 

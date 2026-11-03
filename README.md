@@ -72,7 +72,9 @@ There is no test-login header or authentication bypass in the running app.
 Never run fixture tests against production.
 
 These are routine feature-safety checks, not the two separate assignment test
-deliverables. The required data-isolation scenario and dashboard-calculation
+deliverables. Both required tests come at the very end, after all 10 app features
+are complete; do not start their Issues, branches, or dedicated test work earlier.
+The required data-isolation scenario and dashboard-calculation
 scenario will each be added through their own Issue, branch, and PR, with the
 required explanation, failing/passing screenshots, and what-would-break-it
 sentence. No assignment Test A evidence needs to be attached to the feature 3 PR.
