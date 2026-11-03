@@ -15,3 +15,31 @@ storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/conversation:e5b5300
 storage_version_token = "1793669340763340"
 content_type = "text/markdown"
 source_uri = "file://deliverables/PLAN.md"
+
+[[outputs]]
+id = "lsv8BR1Q0tq4e2FwsGEs4"
+uri = "file://generated-artifacts/feature-3/isolation-red.jpg"
+type = "image"
+title = "Test A — intentional failure"
+description = "Actual failing isolation-test output after temporarily removing the account filter. Keep this screenshot for the feature 3 PR."
+logical_id = "907e4f3c-db60-4668-ae90-b682b5c30e72"
+content_hash = "sha256:7753e5fdce1f7c8304bdbb3823ca9de385d5c3bff8e628c4334488dbdabbc3c9"
+size = 92264
+mtime_ms = 1793674151617
+storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/repl:32d8c419-f51e-4bef-b465-162c9411a6f8/907e4f3c-db60-4668-ae90-b682b5c30e72/99ff032a-31a4-45e5-abaf-fd5a4bc0c2fe"
+storage_version_token = "1793674245400264"
+content_type = "image/jpeg"
+
+[[outputs]]
+id = "_J-STR0n9QKxD4vl-ZvhR"
+uri = "file://generated-artifacts/feature-3/isolation-green.jpg"
+type = "image"
+title = "Test A — restored code passes"
+description = "Actual passing output after restoring the account filter: all eight API tests pass. Keep this screenshot for the feature 3 PR."
+logical_id = "6a51d1ef-86dd-4b76-be8e-194af8a8fcf0"
+content_hash = "sha256:633cefc09804219527d0e22dc19c013b320a0a5eefb26ce98a62e6e8a6f06c51"
+size = 149484
+mtime_ms = 1793674153749
+storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/repl:32d8c419-f51e-4bef-b465-162c9411a6f8/6a51d1ef-86dd-4b76-be8e-194af8a8fcf0/77fd876b-eded-4487-839f-983ee5b3ad0d"
+storage_version_token = "1793674245864236"
+content_type = "image/jpeg"

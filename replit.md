@@ -46,8 +46,10 @@ A personal gym training journal built for a school assignment, one feature at a 
 ## Product
 
 - Feature 1 is merged and published: signup, login, logout, and a protected linked-account area.
-- Current approved scope: feature 2 only — database models and relationships from the original plan, applied and verified in development.
-- Workout CRUD screens, template editing, starring behavior, search, dashboard, and charts belong to later separate features. Their underlying tables do not constitute those features.
+- Feature 2 is merged and published; the nine production tables and their primary/foreign keys were verified read-only.
+- Current approved scope: feature 3 only — dated session create/read/update/delete, linked to the authenticated account, with confirmation before deletion.
+- Template editing, starring behavior, search, dashboard, and charts belong to later separate features. Their underlying tables do not constitute those features.
+- The basic session editor uses a set count and uniform reps per exercise. Individually editable per-set reps remain feature 9; preserve any already-saved differing reps when editing unrelated fields. **Why:** the assignment's feature order must remain intact without overwriting existing data.
 
 ## User preferences
 

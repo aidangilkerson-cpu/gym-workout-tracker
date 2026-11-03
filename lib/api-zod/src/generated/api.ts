@@ -9,6 +9,200 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary List only the authenticated user's saved sessions
+ */
+export const ListSessionsResponseItem = zod.object({
+  "id": zod.number().int(),
+  "workoutVersionId": zod.number().int().nullable(),
+  "workoutName": zod.string(),
+  "date": zod.string(),
+  "notes": zod.string().nullable(),
+  "exercises": zod.array(zod.object({
+  "id": zod.number().int(),
+  "exerciseId": zod.number().int(),
+  "exerciseName": zod.string(),
+  "weightLb": zod.number(),
+  "position": zod.number().int(),
+  "sets": zod.array(zod.object({
+  "id": zod.number().int(),
+  "setNumber": zod.number().int(),
+  "reps": zod.number().int()
+}))
+}))
+})
+export const ListSessionsResponse = zod.array(ListSessionsResponseItem)
+
+
+/**
+ * @summary Save a dated session for the authenticated user
+ */
+export const createSessionBodyWorkoutNameMax = 120;
+
+export const createSessionBodyDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const createSessionBodyNotesMax = 5000;
+
+
+export const createSessionBodyExercisesItemExerciseNameMax = 120;
+
+export const createSessionBodyExercisesItemWeightLbMin = 0;
+export const createSessionBodyExercisesItemWeightLbMax = 99999999.99;
+export const createSessionBodyExercisesItemWeightLbMultipleOf = 0.01;
+
+export const createSessionBodyExercisesItemSetsItemRepsMin = 0;
+export const createSessionBodyExercisesItemSetsItemRepsMax = 2147483647;
+
+export const createSessionBodyExercisesItemSetsMax = 100;
+
+export const createSessionBodyExercisesMax = 50;
+
+
+
+export const CreateSessionBody = zod.object({
+  "workoutName": zod.string().min(1).max(createSessionBodyWorkoutNameMax),
+  "date": zod.string().regex(createSessionBodyDateRegExp),
+  "notes": zod.string().max(createSessionBodyNotesMax).nullable(),
+  "exercises": zod.array(zod.object({
+  "exerciseId": zod.number().int().min(1).optional(),
+  "exerciseName": zod.string().min(1).max(createSessionBodyExercisesItemExerciseNameMax),
+  "weightLb": zod.number().min(createSessionBodyExercisesItemWeightLbMin).max(createSessionBodyExercisesItemWeightLbMax).multipleOf(createSessionBodyExercisesItemWeightLbMultipleOf),
+  "sets": zod.array(zod.object({
+  "reps": zod.number().int().min(createSessionBodyExercisesItemSetsItemRepsMin).max(createSessionBodyExercisesItemSetsItemRepsMax)
+})).min(1).max(createSessionBodyExercisesItemSetsMax)
+})).min(1).max(createSessionBodyExercisesMax)
+})
+
+export const CreateSessionResponse = zod.object({
+  "id": zod.number().int(),
+  "workoutVersionId": zod.number().int().nullable(),
+  "workoutName": zod.string(),
+  "date": zod.string(),
+  "notes": zod.string().nullable(),
+  "exercises": zod.array(zod.object({
+  "id": zod.number().int(),
+  "exerciseId": zod.number().int(),
+  "exerciseName": zod.string(),
+  "weightLb": zod.number(),
+  "position": zod.number().int(),
+  "sets": zod.array(zod.object({
+  "id": zod.number().int(),
+  "setNumber": zod.number().int(),
+  "reps": zod.number().int()
+}))
+}))
+})
+
+
+/**
+ * @summary Read one of the authenticated user's sessions
+ */
+
+
+
+export const GetSessionParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const GetSessionResponse = zod.object({
+  "id": zod.number().int(),
+  "workoutVersionId": zod.number().int().nullable(),
+  "workoutName": zod.string(),
+  "date": zod.string(),
+  "notes": zod.string().nullable(),
+  "exercises": zod.array(zod.object({
+  "id": zod.number().int(),
+  "exerciseId": zod.number().int(),
+  "exerciseName": zod.string(),
+  "weightLb": zod.number(),
+  "position": zod.number().int(),
+  "sets": zod.array(zod.object({
+  "id": zod.number().int(),
+  "setNumber": zod.number().int(),
+  "reps": zod.number().int()
+}))
+}))
+})
+
+
+/**
+ * @summary Replace editable session contents atomically, preserving its owner and version link
+ */
+
+
+
+export const UpdateSessionParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const updateSessionBodyWorkoutNameMax = 120;
+
+export const updateSessionBodyDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const updateSessionBodyNotesMax = 5000;
+
+
+export const updateSessionBodyExercisesItemExerciseNameMax = 120;
+
+export const updateSessionBodyExercisesItemWeightLbMin = 0;
+export const updateSessionBodyExercisesItemWeightLbMax = 99999999.99;
+export const updateSessionBodyExercisesItemWeightLbMultipleOf = 0.01;
+
+export const updateSessionBodyExercisesItemSetsItemRepsMin = 0;
+export const updateSessionBodyExercisesItemSetsItemRepsMax = 2147483647;
+
+export const updateSessionBodyExercisesItemSetsMax = 100;
+
+export const updateSessionBodyExercisesMax = 50;
+
+
+
+export const UpdateSessionBody = zod.object({
+  "workoutName": zod.string().min(1).max(updateSessionBodyWorkoutNameMax),
+  "date": zod.string().regex(updateSessionBodyDateRegExp),
+  "notes": zod.string().max(updateSessionBodyNotesMax).nullable(),
+  "exercises": zod.array(zod.object({
+  "exerciseId": zod.number().int().min(1).optional(),
+  "exerciseName": zod.string().min(1).max(updateSessionBodyExercisesItemExerciseNameMax),
+  "weightLb": zod.number().min(updateSessionBodyExercisesItemWeightLbMin).max(updateSessionBodyExercisesItemWeightLbMax).multipleOf(updateSessionBodyExercisesItemWeightLbMultipleOf),
+  "sets": zod.array(zod.object({
+  "reps": zod.number().int().min(updateSessionBodyExercisesItemSetsItemRepsMin).max(updateSessionBodyExercisesItemSetsItemRepsMax)
+})).min(1).max(updateSessionBodyExercisesItemSetsMax)
+})).min(1).max(updateSessionBodyExercisesMax)
+})
+
+export const UpdateSessionResponse = zod.object({
+  "id": zod.number().int(),
+  "workoutVersionId": zod.number().int().nullable(),
+  "workoutName": zod.string(),
+  "date": zod.string(),
+  "notes": zod.string().nullable(),
+  "exercises": zod.array(zod.object({
+  "id": zod.number().int(),
+  "exerciseId": zod.number().int(),
+  "exerciseName": zod.string(),
+  "weightLb": zod.number(),
+  "position": zod.number().int(),
+  "sets": zod.array(zod.object({
+  "id": zod.number().int(),
+  "setNumber": zod.number().int(),
+  "reps": zod.number().int()
+}))
+}))
+})
+
+
+/**
+ * @summary Delete an owned session and only its dependent exercise, set, and star rows
+ */
+
+
+
+export const DeleteSessionParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const DeleteSessionResponse = zod.void()
+
+
+/**
  * Requires a valid Clerk session cookie. Identity and verified email are resolved on the server; no user identity is accepted from the client.
  * @summary Get or provision the authenticated user's application account
  */

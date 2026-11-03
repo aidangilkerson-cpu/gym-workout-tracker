@@ -11,6 +11,10 @@ import NotFound from '@/pages/not-found';
 import Home from '@/pages/home';
 import UserPortalPage from '@/pages/user-portal';
 import { SignInPage, SignUpPage } from '@/pages/auth';
+import SessionsPage from '@/pages/sessions';
+import NewSessionPage from '@/pages/session-new';
+import SessionDetailPage from '@/pages/session-detail';
+import EditSessionPage from '@/pages/session-edit';
 
 const queryClient = new QueryClient();
 
@@ -109,6 +113,22 @@ function UserPortal() {
   );
 }
 
+function Protected({ children }: { children: ReactNode }) {
+  return (
+    <>
+      <Show when="signed-in">{children}</Show>
+      <Show when="signed-out">
+        <Redirect to="/sign-in" />
+      </Show>
+    </>
+  );
+}
+
+const SessionsRoute = () => <Protected><SessionsPage /></Protected>;
+const NewSessionRoute = () => <Protected><NewSessionPage /></Protected>;
+const SessionDetailRoute = () => <Protected><SessionDetailPage /></Protected>;
+const EditSessionRoute = () => <Protected><EditSessionPage /></Protected>;
+
 function ClerkQueryClientCacheInvalidator() {
   const { addListener } = useClerk();
   const qc = useQueryClient();
@@ -159,6 +179,10 @@ function ClerkProviderWithRoutes() {
               <Route path="/sign-in/*?" component={SignInPage} />
               <Route path="/sign-up/*?" component={SignUpPage} />
               <Route path="/user-portal" component={UserPortal} />
+              <Route path="/sessions" component={SessionsRoute} />
+              <Route path="/sessions/new" component={NewSessionRoute} />
+              <Route path="/sessions/:id/edit" component={EditSessionRoute} />
+              <Route path="/sessions/:id" component={SessionDetailRoute} />
               <Route component={NotFound} />
             </Switch>
           </RoutedErrorBoundary>

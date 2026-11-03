@@ -7,7 +7,8 @@ import {
   useHealthCheck,
   getHealthCheckQueryKey,
 } from '@workspace/api-client-react';
-import { LogOut, RotateCw, ShieldCheck } from 'lucide-react';
+import { Link } from 'wouter';
+import { ArrowRight, LogOut, RotateCw, ShieldCheck } from 'lucide-react';
 import { BrandMark } from '@/components/brand';
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
@@ -42,8 +43,9 @@ export default function UserPortalPage() {
 
   return (
     <div className="grain plates min-h-[100dvh] bg-background text-foreground">
-      <header className="mx-auto flex max-w-3xl items-center justify-between px-5 py-6 md:px-8">
+      <header className="mx-auto flex max-w-3xl items-center justify-between gap-2 px-5 py-6 md:px-8">
         <BrandMark />
+        <Link href="/sessions" className="ml-auto inline-flex h-12 items-center rounded-xl border border-border bg-card px-4 text-sm font-bold hover:border-primary/60 hover:text-primary" data-testid="link-nav-sessions">Sessions</Link>
         <button
           type="button"
           onClick={handleLogout}
@@ -106,6 +108,19 @@ export default function UserPortalPage() {
             </div>
           )}
         </section>
+
+        <Link
+          href="/sessions"
+          className="rise group mt-6 flex items-center justify-between gap-4 rounded-3xl bg-primary p-6 text-primary-foreground transition-transform active:scale-[0.99] md:p-8"
+          style={{ animationDelay: '220ms' }}
+          data-testid="link-go-sessions"
+        >
+          <span>
+            <span className="block font-mono text-xs uppercase tracking-[0.3em] opacity-70">Training ledger</span>
+            <span className="mt-1 block text-2xl font-black uppercase md:text-3xl">Go to your sessions</span>
+          </span>
+          <ArrowRight className="h-7 w-7 shrink-0 transition-transform group-hover:translate-x-1" />
+        </Link>
 
         <div className="mt-6"><ServiceStatus /></div>
       </main>

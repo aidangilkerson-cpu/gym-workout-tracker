@@ -8,4 +8,15 @@
 
 export * from './appUser';
 export * from './errorResponse';
+export * from './forbiddenResponse';
 export * from './healthStatus';
+export * from './invalidInputResponse';
+export * from './notFoundResponse';
+export * from './sessionExerciseInput';
+export * from './sessionExerciseRecord';
+export * from './sessionInput';
+export * from './sessionSetInput';
+export * from './sessionSetRecord';
+export * from './unauthorizedResponse';
+export * from './unavailableResponse';
+export * from './workoutSessionRecord';
