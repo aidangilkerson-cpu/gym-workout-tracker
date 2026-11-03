@@ -5,77 +5,9 @@ import { useUnsavedGuard } from '@/hooks/use-unsaved-guard';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { WeightInput } from '@/components/weight-input';
 import { PageFrame, errorMessage, errorStatus } from '@/components/session-shell';
+import { SetEditor } from '@/components/set-editor';
+import { blankExercise, createSessionDraft, draftFromRecord, draftSnapshot, draftToInput, appendDraftSet, removeDraftSet, updateDraftSet, type SessionDraft as Draft, type ExerciseDraft } from '@/lib/session-draft';
 import { validateSessionDraft, sessionErrorsFromResponse, type FieldErrors } from '@/lib/session-validation';
-
-type ExerciseDraft = {
-  key: number;
-  exerciseId?: number;
-  exerciseName: string;
-  weightLb: string;
-  setCount: string;
-  reps: string;
-  /** Original reps array, kept verbatim unless the user edits sets/reps. */
-  originalReps: number[] | null;
-  setsTouched: boolean;
-};
-
-type Draft = { workoutName: string; date: string; notes: string; exercises: ExerciseDraft[] };
-
-let keySeq = 1;
-
-function today() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-function blankExercise(): ExerciseDraft {
-  return { key: keySeq++, exerciseName: '', weightLb: '', setCount: '3', reps: '', originalReps: null, setsTouched: true };
-}
-
-function fromRecord(r: WorkoutSessionRecord): Draft {
-  return {
-    workoutName: r.workoutName,
-    date: r.date,
-    notes: r.notes ?? '',
-    exercises: [...r.exercises].sort((a, b) => a.position - b.position).map((ex) => {
-      const reps = [...ex.sets].sort((a, b) => a.setNumber - b.setNumber).map((s) => s.reps);
-      const uniform = reps.length > 0 && reps.every((x) => x === reps[0]);
-      return {
-        key: keySeq++,
-        exerciseId: ex.exerciseId,
-        exerciseName: ex.exerciseName,
-        weightLb: String(ex.weightLb),
-        setCount: String(reps.length),
-        reps: uniform ? String(reps[0]) : '',
-        originalReps: reps,
-        setsTouched: false,
-      };
-    }),
-  };
-}
-
-function snapshot(d: Draft) {
-  return JSON.stringify({ ...d, exercises: d.exercises.map(({ key: _k, ...rest }) => rest) });
-}
-
-function toInput(d: Draft): SessionInput {
-  return {
-    workoutName: d.workoutName.trim(),
-    date: d.date,
-    notes: d.notes.trim() ? d.notes : null,
-    exercises: d.exercises.map((ex) => {
-      const sets = !ex.setsTouched && ex.originalReps
-        ? ex.originalReps.map((reps) => ({ reps }))
-        : Array.from({ length: Number(ex.setCount) }, () => ({ reps: Number(ex.reps) }));
-      return {
-        ...(ex.exerciseId ? { exerciseId: ex.exerciseId } : {}),
-        exerciseName: ex.exerciseName.trim(),
-        weightLb: Number(ex.weightLb),
-        sets,
-      };
-    }),
-  };
-}
 
 const inputCls = 'h-12 w-full rounded-xl border border-input bg-secondary px-3.5 text-base text-foreground placeholder:text-muted-foreground/70 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 disabled:opacity-60 aria-invalid:border-destructive aria-invalid:focus:border-destructive aria-invalid:focus:ring-destructive/25';
 const labelCls = 'mb-1.5 block font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground';
@@ -96,16 +28,11 @@ export function SessionForm({ mode, initial, templateVersion, cancelTo, onSubmit
   // Keep provenance and the seed together, even if a parent query refreshes.
   const pinnedTemplate = useRef(templateVersion).current;
   const initialDraft = useMemo<Draft>(
-    () => (initial ? fromRecord(initial) : {
-      workoutName: pinnedTemplate?.workoutName ?? '', date: today(), notes: '',
-      exercises: pinnedTemplate
-        ? pinnedTemplate.exercises.map(ex => ({ ...blankExercise(), exerciseId: ex.exerciseId, exerciseName: ex.exerciseName }))
-        : [blankExercise()],
-    }),
+    () => (initial ? draftFromRecord(initial) : createSessionDraft(pinnedTemplate)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
-  const baseline = useRef(snapshot(initialDraft));
+  const baseline = useRef(draftSnapshot(initialDraft));
   const [draft, setDraft] = useState<Draft>(initialDraft);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -126,7 +53,7 @@ export function SessionForm({ mode, initial, templateVersion, cancelTo, onSubmit
       ?? form?.querySelector<HTMLElement>('[data-testid="validation-summary"]');
     target?.focus();
   }, [focusRequest]);
-  const dirty = snapshot(draft) !== baseline.current;
+  const dirty = draftSnapshot(draft) !== baseline.current;
   const guard = useUnsavedGuard(dirty, saving);
   const confirmLogout = () => {
     if (!dirty) return true;
@@ -144,11 +71,13 @@ export function SessionForm({ mode, initial, templateVersion, cancelTo, onSubmit
   const patchEx = (key: number, p: Partial<ExerciseDraft>) =>
     changeDraft((d) => ({ ...d, exercises: d.exercises.map((ex) => (ex.key === key ? { ...ex, ...p } : ex)) }));
 
-  const touchSets = (ex: ExerciseDraft, p: Partial<ExerciseDraft>) => patchEx(ex.key, { ...p, setsTouched: true });
+  const mapEx = (key: number, fn: (ex: ExerciseDraft) => ExerciseDraft) =>
+    changeDraft((d) => ({ ...d, exercises: d.exercises.map((ex) => (ex.key === key ? fn(ex) : ex)) }));
+  const submitting = useRef(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (saving) return;
+    if (saving || submitting.current) return;
     setSubmitted(true);
     setSaveError(null);
     setServerErrors({});
@@ -156,17 +85,19 @@ export function SessionForm({ mode, initial, templateVersion, cancelTo, onSubmit
       setFocusRequest((request) => request + 1);
       return;
     }
+    submitting.current = true;
     setSaving(true);
     try {
       const saved = await onSubmit({
-        ...toInput(draft),
+        ...draftToInput(draft),
         ...(mode === 'create' && pinnedTemplate ? { workoutVersionId: pinnedTemplate.id } : {}),
       });
-      baseline.current = snapshot(draft);
+      baseline.current = draftSnapshot(draft);
       guard.go(`/sessions/${saved.id}`);
     } catch (err) {
+      submitting.current = false;
       setSaving(false);
-      const fields = sessionErrorsFromResponse(err, draft.exercises.length);
+      const fields = sessionErrorsFromResponse(err, draft.exercises.map((ex) => ex.sets.length));
       setServerErrors(fields);
       if (Object.keys(fields).length) {
         setFocusRequest((request) => request + 1);
@@ -227,7 +158,6 @@ export function SessionForm({ mode, initial, templateVersion, cancelTo, onSubmit
 
           <ol className="space-y-4">
             {draft.exercises.map((ex, i) => {
-              const mixed = !ex.setsTouched && !!ex.originalReps && ex.reps === '';
               const id = `ex-${ex.key}`;
               const path = `exercises.${i}`;
               return (
@@ -245,7 +175,7 @@ export function SessionForm({ mode, initial, templateVersion, cancelTo, onSubmit
                       <Trash2 className="h-4 w-4" /> Remove
                     </button>
                   </div>
-                  <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-[2fr_1fr_1fr_1fr]">
+                  <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-[2fr_1fr]">
                     <div className="sm:col-span-2 md:col-span-1">
                       <label htmlFor={`${id}-name`} className={labelCls}>Exercise</label>
                       <input
@@ -262,26 +192,23 @@ export function SessionForm({ mode, initial, templateVersion, cancelTo, onSubmit
                       <FieldError id={`${id}-name-error`} message={errors[`${path}.exerciseName`]} />
                     </div>
                     <div>
-                      <label htmlFor={`${id}-weight`} className={labelCls}>Weight (lb)</label>
+                      <label htmlFor={`${id}-weight`} className={labelCls}>Weight (lb, all sets)</label>
                       <WeightInput id={`${id}-weight`} value={ex.weightLb} onValueChange={(value) => patchEx(ex.key, { weightLb: value })} className={inputCls} testId={`input-weight-${i}`} invalid={Boolean(errors[`${path}.weightLb`])} describedBy={errors[`${path}.weightLb`] ? `${id}-weight-error` : undefined} />
                       <FieldError id={`${id}-weight-error`} message={errors[`${path}.weightLb`]} />
                     </div>
-                    <div>
-                      <label htmlFor={`${id}-sets`} className={labelCls}>Sets</label>
-                      <input id={`${id}-sets`} type="number" inputMode="numeric" required min={1} max={100} step={1} value={ex.setCount} onChange={(e) => touchSets(ex, { setCount: e.target.value })} className={inputCls} data-testid={`input-sets-${i}`} {...fieldProps(`${path}.sets`, `${id}-sets`)} />
-                      <FieldError id={`${id}-sets-error`} message={errors[`${path}.sets`]} />
-                    </div>
-                    <div>
-                      <label htmlFor={`${id}-reps`} className={labelCls}>Reps per set</label>
-                      <input id={`${id}-reps`} type="number" inputMode="numeric" required={!mixed} min={0} max={2147483647} step={1} value={ex.reps} onChange={(e) => touchSets(ex, { reps: e.target.value })} placeholder={mixed ? 'Varies' : '8'} className={inputCls} data-testid={`input-reps-${i}`} {...fieldProps(`${path}.reps`, `${id}-reps`)} />
-                      <FieldError id={`${id}-reps-error`} message={errors[`${path}.reps`]} />
-                    </div>
                   </div>
-                  {mixed && ex.originalReps && (
-                    <p className="mt-3 font-mono text-xs text-muted-foreground" data-testid={`text-mixed-reps-${i}`}>
-                      Saved reps vary by set ({ex.originalReps.join(' / ')}). They stay as-is unless you change sets or reps.
-                    </p>
-                  )}
+                  <SetEditor
+                    exercise={ex}
+                    index={i}
+                    idBase={id}
+                    exerciseLabel={ex.exerciseName.trim() || `exercise ${i + 1}`}
+                    errors={errors}
+                    disabled={saving}
+                    inputCls={inputCls}
+                    onAdd={() => mapEx(ex.key, appendDraftSet)}
+                    onRemove={(k) => mapEx(ex.key, (x) => removeDraftSet(x, k))}
+                    onChange={(k, reps) => mapEx(ex.key, (x) => updateDraftSet(x, k, reps))}
+                  />
                 </li>
               );
             })}
