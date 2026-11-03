@@ -15,3 +15,31 @@ storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/conversation:e5b5300
 storage_version_token = "1793669340763340"
 content_type = "text/markdown"
 source_uri = "file://deliverables/PLAN.md"
+
+[[outputs]]
+id = "OYk0jFgtN2WIhAY5oN5W-"
+uri = "file://generated-artifacts/test-a/red.png"
+type = "image"
+title = "Test A — failing result"
+description = "Actual captured Vitest output: removing the owner filter in an isolated test copy exposes A’s fixture to B."
+logical_id = "4adf8607-9529-4cf1-82cf-719090d61fff"
+content_hash = "sha256:3de539ddb78ab824db72af07268ff4bc97f9b1275a521eb3b835f5931f5b4903"
+size = 193925
+mtime_ms = 1793688755698
+storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/repl:32d8c419-f51e-4bef-b465-162c9411a6f8/4adf8607-9529-4cf1-82cf-719090d61fff/e80aa21e-1f02-406d-ae69-411b05e561c3"
+storage_version_token = "1793688970765907"
+content_type = "image/png"
+
+[[outputs]]
+id = "p1GZ7toWnubBtt_OE_eKy"
+uri = "file://generated-artifacts/test-a/green.png"
+type = "image"
+title = "Test A — passing result"
+description = "Actual captured Vitest output: the same test passes after restoring the original ownership filter. Screenshots show an output viewer, not a terminal."
+logical_id = "d318231b-6b82-4113-9665-c90ad3303e32"
+content_hash = "sha256:84af4ed689cc52f0cc908e0e0dbbc40c965da1341f4916bebccedf3cb7a77fb8"
+size = 57198
+mtime_ms = 1793688910322
+storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/repl:32d8c419-f51e-4bef-b465-162c9411a6f8/d318231b-6b82-4113-9665-c90ad3303e32/500273c4-3793-4bba-a07c-9f04fe3829c0"
+storage_version_token = "1793688971612067"
+content_type = "image/png"
