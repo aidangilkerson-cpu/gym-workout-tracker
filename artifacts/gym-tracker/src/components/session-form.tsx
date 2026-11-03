@@ -1,10 +1,11 @@
-import { useMemo, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import type { SessionInput, WorkoutSessionRecord } from '@workspace/api-client-react';
 import { Plus, Trash2 } from 'lucide-react';
 import { useUnsavedGuard } from '@/hooks/use-unsaved-guard';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { WeightInput } from '@/components/weight-input';
-import { PageFrame, errorMessage } from '@/components/session-shell';
+import { PageFrame, errorMessage, errorStatus } from '@/components/session-shell';
+import { validateSessionDraft, sessionErrorsFromResponse, type FieldErrors } from '@/lib/session-validation';
 
 type ExerciseDraft = {
   key: number;
@@ -76,8 +77,12 @@ function toInput(d: Draft): SessionInput {
   };
 }
 
-const inputCls = 'h-12 w-full rounded-xl border border-input bg-secondary px-3.5 text-base text-foreground placeholder:text-muted-foreground/70 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 disabled:opacity-60';
+const inputCls = 'h-12 w-full rounded-xl border border-input bg-secondary px-3.5 text-base text-foreground placeholder:text-muted-foreground/70 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 disabled:opacity-60 aria-invalid:border-destructive aria-invalid:focus:border-destructive aria-invalid:focus:ring-destructive/25';
 const labelCls = 'mb-1.5 block font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground';
+
+function FieldError({ id, message }: { id: string; message?: string }) {
+  return message ? <p id={id} className="mt-1.5 text-sm text-destructive" data-testid={id}>{message}</p> : null;
+}
 
 type Props = {
   mode: 'create' | 'edit';
@@ -96,6 +101,23 @@ export function SessionForm({ mode, initial, cancelTo, onSubmit }: Props) {
   const [draft, setDraft] = useState<Draft>(initialDraft);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false);
+  const [serverErrors, setServerErrors] = useState<FieldErrors>({});
+  const [focusRequest, setFocusRequest] = useState(0);
+  const formRef = useRef<HTMLFormElement>(null);
+  const errors = { ...(submitted ? validateSessionDraft(draft) : {}), ...serverErrors };
+  const hasErrors = Object.keys(errors).length > 0;
+  const fieldProps = (path: string, id: string) => ({
+    'aria-invalid': Boolean(errors[path]),
+    'aria-describedby': errors[path] ? `${id}-error` : undefined,
+  });
+  useEffect(() => {
+    if (!focusRequest) return;
+    const form = formRef.current;
+    const target = form?.querySelector<HTMLElement>('[aria-invalid="true"]')
+      ?? form?.querySelector<HTMLElement>('[data-testid="validation-summary"]');
+    target?.focus();
+  }, [focusRequest]);
   const dirty = snapshot(draft) !== baseline.current;
   const guard = useUnsavedGuard(dirty, saving);
   const confirmLogout = () => {
@@ -105,24 +127,45 @@ export function SessionForm({ mode, initial, cancelTo, onSubmit }: Props) {
     return ok;
   };
 
-  const patch = (p: Partial<Draft>) => setDraft((d) => ({ ...d, ...p }));
+  const changeDraft = (update: (draft: Draft) => Draft) => {
+    setDraft(update);
+    setServerErrors({});
+    setSaveError(null);
+  };
+  const patch = (p: Partial<Draft>) => changeDraft((d) => ({ ...d, ...p }));
   const patchEx = (key: number, p: Partial<ExerciseDraft>) =>
-    setDraft((d) => ({ ...d, exercises: d.exercises.map((ex) => (ex.key === key ? { ...ex, ...p } : ex)) }));
+    changeDraft((d) => ({ ...d, exercises: d.exercises.map((ex) => (ex.key === key ? { ...ex, ...p } : ex)) }));
 
   const touchSets = (ex: ExerciseDraft, p: Partial<ExerciseDraft>) => patchEx(ex.key, { ...p, setsTouched: true });
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (saving) return;
-    setSaving(true);
+    setSubmitted(true);
     setSaveError(null);
+    setServerErrors({});
+    if (Object.keys(validateSessionDraft(draft)).length) {
+      setFocusRequest((request) => request + 1);
+      return;
+    }
+    setSaving(true);
     try {
       const saved = await onSubmit(toInput(draft));
       baseline.current = snapshot(draft);
       guard.go(`/sessions/${saved.id}`);
     } catch (err) {
-      setSaveError(errorMessage(err));
       setSaving(false);
+      const fields = sessionErrorsFromResponse(err, draft.exercises.length);
+      setServerErrors(fields);
+      if (Object.keys(fields).length) {
+        setFocusRequest((request) => request + 1);
+      } else {
+        const status = errorStatus(err);
+        setSaveError(status === undefined
+          ? "We couldn't reach the server. Check your connection and try saving again."
+          : status >= 500 ? "We couldn't save your session right now. Please try again."
+          : errorMessage(err));
+      }
     }
   };
 
@@ -133,38 +176,50 @@ export function SessionForm({ mode, initial, cancelTo, onSubmit }: Props) {
         {mode === 'create' ? 'Log a session.' : 'Fix the record.'}
       </h1>
 
-      <form onSubmit={handleSubmit} className="rise mt-8 space-y-6" style={{ animationDelay: '120ms' }} data-testid="form-session" aria-busy={saving}>
+      <form ref={formRef} noValidate onSubmit={handleSubmit} className="rise mt-8 space-y-6" style={{ animationDelay: '120ms' }} data-testid="form-session" aria-busy={saving}>
+        {hasErrors && (
+          <div role="alert" tabIndex={-1} className="rounded-2xl border border-destructive/50 bg-destructive/10 p-4 text-sm" data-testid="validation-summary">
+            <p className="font-bold text-destructive">Check the highlighted fields.</p>
+            <p className="mt-1">Your changes haven&apos;t been saved. Your entries are still here.</p>
+            {errors.session && <p className="mt-1">{errors.session}</p>}
+          </div>
+        )}
         <fieldset disabled={saving} className="space-y-6">
           <section className="grid gap-4 rounded-3xl border border-border bg-card p-5 md:grid-cols-[1fr_190px] md:p-7">
             <div>
               <label htmlFor="workoutName" className={labelCls}>Workout name</label>
-              <input id="workoutName" required maxLength={120} value={draft.workoutName} onChange={(e) => patch({ workoutName: e.target.value })} placeholder="Push day A" className={inputCls} data-testid="input-workout-name" />
+              <input id="workoutName" required maxLength={120} value={draft.workoutName} onChange={(e) => patch({ workoutName: e.target.value })} placeholder="Push day A" className={inputCls} data-testid="input-workout-name" {...fieldProps('workoutName', 'workoutName')} />
+              <FieldError id="workoutName-error" message={errors.workoutName} />
             </div>
             <div>
               <label htmlFor="date" className={labelCls}>Date</label>
-              <input id="date" type="date" required value={draft.date} onChange={(e) => patch({ date: e.target.value })} className={inputCls} data-testid="input-date" />
+              <input id="date" type="date" required min="0001-01-01" max="9999-12-31" value={draft.date} onChange={(e) => patch({ date: e.target.value })} className={inputCls} data-testid="input-date" {...fieldProps('date', 'date')} />
+              <FieldError id="date-error" message={errors.date} />
             </div>
             <div className="md:col-span-2">
               <label htmlFor="notes" className={labelCls}>Notes (optional)</label>
-              <textarea id="notes" maxLength={5000} rows={3} value={draft.notes} onChange={(e) => patch({ notes: e.target.value })} placeholder="Left shoulder felt tight on the last set." className={`${inputCls} h-auto py-3`} data-testid="input-notes" />
+              <textarea id="notes" maxLength={5000} rows={3} value={draft.notes} onChange={(e) => patch({ notes: e.target.value })} placeholder="Left shoulder felt tight on the last set." className={`${inputCls} h-auto py-3`} data-testid="input-notes" {...fieldProps('notes', 'notes')} />
+              <FieldError id="notes-error" message={errors.notes} />
             </div>
           </section>
 
           <div className="flex items-end justify-between">
             <h2 className="text-xl font-black uppercase tracking-tight">Exercises <span className="font-mono text-sm text-muted-foreground">{draft.exercises.length}</span></h2>
           </div>
+          <FieldError id="exercises-error" message={errors.exercises} />
 
           <ol className="space-y-4">
             {draft.exercises.map((ex, i) => {
               const mixed = !ex.setsTouched && !!ex.originalReps && ex.reps === '';
               const id = `ex-${ex.key}`;
+              const path = `exercises.${i}`;
               return (
                 <li key={ex.key} className="relative rounded-3xl border border-border bg-card p-5 md:p-6" data-testid={`card-exercise-input-${i}`}>
                   <div className="mb-4 flex items-center justify-between">
                     <span className="font-mono text-xs font-bold text-primary">{String(i + 1).padStart(2, '0')}</span>
                     <button
                       type="button"
-                      onClick={() => setDraft((d) => ({ ...d, exercises: d.exercises.filter((x) => x.key !== ex.key) }))}
+                      onClick={() => changeDraft((d) => ({ ...d, exercises: d.exercises.filter((x) => x.key !== ex.key) }))}
                       disabled={draft.exercises.length <= 1}
                       aria-label={`Remove exercise ${i + 1}`}
                       className="inline-flex h-10 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold text-muted-foreground hover:text-destructive disabled:opacity-30"
@@ -185,19 +240,24 @@ export function SessionForm({ mode, initial, cancelTo, onSubmit }: Props) {
                         placeholder="Bench press"
                         className={inputCls}
                         data-testid={`input-exercise-name-${i}`}
+                        {...fieldProps(`${path}.exerciseName`, `${id}-name`)}
                       />
+                      <FieldError id={`${id}-name-error`} message={errors[`${path}.exerciseName`]} />
                     </div>
                     <div>
                       <label htmlFor={`${id}-weight`} className={labelCls}>Weight (lb)</label>
-                      <WeightInput id={`${id}-weight`} value={ex.weightLb} onValueChange={(value) => patchEx(ex.key, { weightLb: value })} className={inputCls} testId={`input-weight-${i}`} />
+                      <WeightInput id={`${id}-weight`} value={ex.weightLb} onValueChange={(value) => patchEx(ex.key, { weightLb: value })} className={inputCls} testId={`input-weight-${i}`} invalid={Boolean(errors[`${path}.weightLb`])} describedBy={errors[`${path}.weightLb`] ? `${id}-weight-error` : undefined} />
+                      <FieldError id={`${id}-weight-error`} message={errors[`${path}.weightLb`]} />
                     </div>
                     <div>
                       <label htmlFor={`${id}-sets`} className={labelCls}>Sets</label>
-                      <input id={`${id}-sets`} type="number" inputMode="numeric" required min={1} max={100} step={1} value={ex.setCount} onChange={(e) => touchSets(ex, { setCount: e.target.value })} className={inputCls} data-testid={`input-sets-${i}`} />
+                      <input id={`${id}-sets`} type="number" inputMode="numeric" required min={1} max={100} step={1} value={ex.setCount} onChange={(e) => touchSets(ex, { setCount: e.target.value })} className={inputCls} data-testid={`input-sets-${i}`} {...fieldProps(`${path}.sets`, `${id}-sets`)} />
+                      <FieldError id={`${id}-sets-error`} message={errors[`${path}.sets`]} />
                     </div>
                     <div>
                       <label htmlFor={`${id}-reps`} className={labelCls}>Reps per set</label>
-                      <input id={`${id}-reps`} type="number" inputMode="numeric" required={!mixed} min={0} max={2147483647} step={1} value={ex.reps} onChange={(e) => touchSets(ex, { reps: e.target.value })} placeholder={mixed ? 'Varies' : '8'} className={inputCls} data-testid={`input-reps-${i}`} />
+                      <input id={`${id}-reps`} type="number" inputMode="numeric" required={!mixed} min={0} max={2147483647} step={1} value={ex.reps} onChange={(e) => touchSets(ex, { reps: e.target.value })} placeholder={mixed ? 'Varies' : '8'} className={inputCls} data-testid={`input-reps-${i}`} {...fieldProps(`${path}.reps`, `${id}-reps`)} />
+                      <FieldError id={`${id}-reps-error`} message={errors[`${path}.reps`]} />
                     </div>
                   </div>
                   {mixed && ex.originalReps && (
@@ -212,10 +272,11 @@ export function SessionForm({ mode, initial, cancelTo, onSubmit }: Props) {
 
           <button
             type="button"
-            onClick={() => setDraft((d) => ({ ...d, exercises: [...d.exercises, blankExercise()] }))}
+            onClick={() => changeDraft((d) => ({ ...d, exercises: [...d.exercises, blankExercise()] }))}
             disabled={draft.exercises.length >= 50}
             className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border font-bold text-muted-foreground transition-colors hover:border-primary hover:text-primary disabled:opacity-40"
             data-testid="button-add-exercise"
+            {...fieldProps('exercises', 'exercises')}
           >
             <Plus className="h-5 w-5" /> Add exercise
           </button>

@@ -16,15 +16,23 @@ their history and session details, edit a session, and delete it after
 confirmation. A session exercise uses one weight in pounds and, for this basic
 editor, a set count with the same reps for every set.
 
-This bug-fix branch changes the weight arrows to **1 lb per click**, preserving
-typed decimal weights. Keyboard ArrowUp/ArrowDown use the same increment.
-The correction is not published until its own PR is reviewed and merged.
+The published weight-arrow fix uses **1 lb per click**, preserving typed
+decimal weights. Keyboard ArrowUp/ArrowDown use the same increment.
+
+This branch implements **feature 4: Validation** in development: inline
+field-specific errors in create/edit forms, accessible first-error focus,
+safe server validation feedback, and draft retention after failed saves.
+Invalid submissions do not overwrite existing saved sessions. The feature is
+not published until its own PR is reviewed and merged.
+Routine checks and one signed-in mobile error/retry journey passed, including
+retained drafts on HTTP 503, mapped server field errors, and successful
+corrected saves. See `prompts/validation.md` for actual verification details.
 
 The account screen links to `/sessions`; create, detail, and edit routes are
 `/sessions/new`, `/sessions/:id`, and `/sessions/:id/edit`.
 Advanced individually editable per-set reps remain feature 9. If existing saved
 reps differ, this editor preserves them unless sets/reps are explicitly changed.
-Friendly field validation, stars, search/sort, dashboards, reusable templates
+Stars, search/sort, dashboards, reusable templates
 with version history, and repeat-session behavior remain their separate later
 features. No later feature is claimed as complete.
 
@@ -67,18 +75,19 @@ Run the real-development-database API tests:
 
 ```sh
 pnpm --filter @workspace/api-server run test
-pnpm --filter @workspace/gym-tracker exec node --test test/weight-step.test.mjs
+pnpm --filter @workspace/gym-tracker exec node --test test/weight-step.test.mjs test/session-validation.test.mjs
 pnpm run typecheck
 ```
 
-The seven routine Vitest + Supertest tests use real PostgreSQL; only provider identity is
+The nine routine Vitest + Supertest tests use real PostgreSQL; only provider identity is
 substituted within the test process. Each fixture rolls back, even on failure.
 There is no test-login header or authentication bypass in the running app.
 Never run fixture tests against production.
 
-The nine focused weight-step checks use Node's built-in test runner and do not
-access the database. They cover one-pound movement, decimal preservation,
-repeated clicks, and the existing input bounds.
+The eighteen focused client checks use Node's built-in test runner and do not
+access the database. Nine cover weight-arrow movement and nine cover draft
+validation and API error mapping. These are routine verification, not the
+assignment's two separate required tests.
 
 These are routine feature-safety checks, not the two separate assignment test
 deliverables. Both required tests come at the very end, after all 10 app features

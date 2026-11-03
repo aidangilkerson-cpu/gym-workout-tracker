@@ -317,6 +317,11 @@ components:
       properties:
         error:
           type: string
+        fieldErrors:
+          type: object
+          description: Optional validation messages keyed by dot-separated SessionInput field paths, such as exercises.0.weightLb or exercises.0.sets.0.reps.
+          additionalProperties:
+            type: string
     HealthStatus:
       type: object
       properties:

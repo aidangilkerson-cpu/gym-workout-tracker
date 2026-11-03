@@ -7,9 +7,11 @@ type Props = {
   onValueChange: (value: string) => void;
   className: string;
   testId: string;
+  invalid?: boolean;
+  describedBy?: string;
 };
 
-export function WeightInput({ id, value, onValueChange, className, testId }: Props) {
+export function WeightInput({ id, value, onValueChange, className, testId, invalid, describedBy }: Props) {
   const move = (direction: 1 | -1) => onValueChange(stepWeight(value, direction));
   const arrowClass = 'flex flex-1 items-center justify-center text-muted-foreground hover:bg-white/5 hover:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-30';
 
@@ -34,6 +36,8 @@ export function WeightInput({ id, value, onValueChange, className, testId }: Pro
         placeholder="135"
         className={`${className} pr-11 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
         data-testid={testId}
+        aria-invalid={invalid || undefined}
+        aria-describedby={describedBy}
       />
       {/* Separate arrow movement from the browser's decimal validation step. */}
       <div className="absolute inset-y-0 right-0 flex w-10 flex-col overflow-hidden rounded-r-sm border-l border-white/10">
