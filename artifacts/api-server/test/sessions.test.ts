@@ -78,6 +78,64 @@ async function create(app: Express, user: string, data = input()) {
 afterAll(async () => { await pool.end(); });
 
 describe("Session API with real PostgreSQL (fixtures always rolled back)", () => {
+  it("searches literal workout names case-insensitively and sorts dates with stable ties", async () => {
+    await fixture(async ({ app, a, b }) => {
+      const older = await create(app, a, { ...input(), workoutName: "Upper 100%_\\ day", date: "2026-10-01" });
+      const newer = await create(app, a, { ...input(), workoutName: "UPPER day", date: "2026-11-01" });
+      const tied = await create(app, a, { ...input(), workoutName: "Upper tie", date: "2026-11-01" });
+      const lower = await create(app, a, { ...input(), workoutName: "Lower day", date: "2026-09-01" });
+      await create(app, b, { ...input(), workoutName: "Upper foreign", date: "2026-12-01" });
+      const list = async (query: object) => (await request(app).get("/api/sessions")
+        .query(query).set("x-test-account", a).expect(200)).body;
+      expect((await list({ q: "  uPpEr  " })).map((s: { id: number }) => s.id)).toEqual([tied.id, newer.id, older.id]);
+      expect((await list({ q: "upper", sort: "oldest" })).map((s: { id: number }) => s.id)).toEqual([older.id, newer.id, tied.id]);
+      expect((await list({ sort: "oldest" })).map((s: { id: number }) => s.id)).toEqual([lower.id, older.id, newer.id, tied.id]);
+      for (const q of ["%", "_", "\\", "100%_\\"]) {
+        expect((await list({ q })).map((s: { id: number }) => s.id)).toEqual([older.id]);
+      }
+      expect(await list({ q: "' OR 1=1 --" })).toEqual([]);
+      expect(await list({ q: "Bench press" })).toEqual([]); // Names, not exercises/notes.
+      expect(await list({ q: "not present" })).toEqual([]);
+      expect((await list({ q: "   " })).length).toBe(4);
+    });
+  });
+
+  it("combines search, stars and both date directions without mutating saved contents", async () => {
+    await fixture(async ({ app, a }) => {
+      const older = await create(app, a, { ...input(), workoutName: "Upper old", date: "2026-10-01" });
+      const newer = await create(app, a, { ...input(), workoutName: "Upper new", date: "2026-11-01" });
+      await create(app, a, { ...input(), workoutName: "Upper unstarred" });
+      for (const session of [older, newer]) {
+        await request(app).put(`/api/sessions/${session.id}/star`).set("x-test-account", a).send({ starred: true }).expect(200);
+      }
+      for (const sort of ["oldest", "newest"]) {
+        const result = await request(app).get("/api/sessions").set("x-test-account", a)
+          .query({ q: "UPPER", sort, starredOnly: "true" }).expect(200);
+        expect(result.body.map((s: { id: number }) => s.id)).toEqual(sort === "oldest" ? [older.id, newer.id] : [newer.id, older.id]);
+        expect(result.body.every((s: { starred: boolean }) => s.starred)).toBe(true);
+      }
+      const saved = await request(app).get(`/api/sessions/${older.id}`).set("x-test-account", a).expect(200);
+      expect(saved.body).toEqual({ ...older, starred: true });
+    });
+  });
+
+  it("rejects malformed list filters and safely retries a failed read", async () => {
+    await fixture(async ({ app, tx, a }) => {
+      const saved = await create(app, a);
+      for (const query of ["sort=random", "q=" + "a".repeat(121), "q=a&q=b", "q[nested]=a", "sort=oldest&sort=newest", "starredOnly=maybe"]) {
+        await request(app).get(`/api/sessions?${query}`).set("x-test-account", a).expect(400);
+      }
+      const fail = vi.spyOn(tx.query.sessionsTable, "findMany").mockRejectedValueOnce(new Error("Private database diagnostic"));
+      try {
+        const result = await request(app).get("/api/sessions?q=upper&sort=oldest").set("x-test-account", a).expect(503);
+        expect(result.body.error).toContain("Please try again");
+        expect(JSON.stringify(result.body)).not.toContain("diagnostic");
+      } finally { fail.mockRestore(); }
+      const result = await request(app).get("/api/sessions?q=upper&sort=oldest").set("x-test-account", a).expect(200);
+      expect(result.body.map((s: { id: number }) => s.id)).toEqual([saved.id]);
+    });
+  });
+
   it("creates, lists, reads and updates a persisted session with decimal pounds and a calendar date", async () => {
     await fixture(async ({ app, tx, a }) => {
       const saved = await create(app, a);

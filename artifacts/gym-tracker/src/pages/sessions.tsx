@@ -3,18 +3,16 @@ import { useListSessions, getListSessionsQueryKey } from '@workspace/api-client-
 import { ArrowRight, Plus } from 'lucide-react';
 import { AccountGate, ErrorPanel, PageFrame, SkeletonBlock, errorMessage, formatDate } from '@/components/session-shell';
 import { SessionStar } from '@/components/session-star';
+import { SessionFilters } from '@/components/session-filters';
+import { readSessionFilters, sessionListUrl } from '@/lib/session-filters';
 
 function SessionList() {
   const search = useSearch();
-  const starredOnly = new URLSearchParams(search).get('view') === 'starred';
-  const params = starredOnly ? { starredOnly: 'true' as const } : undefined;
+  const state = readSessionFilters(search);
+  const { starredOnly } = state;
+  const params = { starredOnly: starredOnly ? 'true' as const : undefined, q: state.q || undefined, sort: state.sort };
   const list = useListSessions(params, { query: { queryKey: getListSessionsQueryKey(params), refetchOnMount: 'always' } });
-  const filters = (
-    <nav aria-label="Session views" className="mb-6 flex flex-wrap gap-2">
-      <Link href="/sessions" aria-current={!starredOnly ? 'page' : undefined} className={`inline-flex min-h-12 items-center rounded-xl border px-4 font-semibold ${!starredOnly ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card hover:border-primary'}`} data-testid="filter-all-sessions">All sessions</Link>
-      <Link href="/sessions?view=starred" aria-current={starredOnly ? 'page' : undefined} className={`inline-flex min-h-12 items-center rounded-xl border px-4 font-semibold ${starredOnly ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card hover:border-primary'}`} data-testid="filter-starred-sessions">Starred only</Link>
-    </nav>
-  );
+  const filters = <SessionFilters key={search} filters={state} />;
 
   if (list.isLoading) return <>{filters}<SkeletonBlock testid="status-sessions-loading" /></>;
   if (list.isError) {
@@ -28,7 +26,15 @@ function SessionList() {
       /></>
     );
   }
-  const sessions = [...(list.data ?? [])].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : b.id - a.id));
+  const sessions = list.data ?? [];
+
+  if (sessions.length === 0 && state.q.trim()) {
+    return <>{filters}<div role="status" className="rounded-3xl border border-dashed border-border bg-card/60 p-8 text-center" data-testid="status-sessions-no-results">
+      <h2 className="text-3xl font-black uppercase">No matching sessions.</h2>
+      <p className="mt-2 break-words text-muted-foreground">No {starredOnly ? 'starred ' : ''}workout names match “{state.q}”. Try another name or clear your search.</p>
+      <Link href={sessionListUrl({ ...state, q: '' })} className="mt-5 inline-flex min-h-12 items-center rounded-xl bg-primary px-5 font-semibold text-primary-foreground">Clear search</Link>
+    </div></>;
+  }
 
   if (sessions.length === 0) {
     return (
@@ -36,7 +42,7 @@ function SessionList() {
         <p className="font-mono text-xs uppercase tracking-[0.3em] text-muted-foreground">Ledger empty</p>
         <h2 className="mt-3 text-3xl font-black uppercase">{starredOnly ? 'No starred sessions yet.' : 'No sessions yet.'}</h2>
         <p className="mx-auto mt-2 max-w-sm text-muted-foreground">{starredOnly ? 'Star a session to keep a favorite here. Unstarring never deletes the session.' : "Log today's lift and it lands here, dated and private to you."}</p>
-        <Link href={starredOnly ? '/sessions' : '/sessions/new'} className="mt-6 inline-flex min-h-14 items-center gap-2 rounded-2xl bg-primary px-6 py-3 font-bold text-primary-foreground" data-testid="link-new-session-empty">
+        <Link href={starredOnly ? sessionListUrl({ ...state, starredOnly: false }) : '/sessions/new'} className="mt-6 inline-flex min-h-14 items-center gap-2 rounded-2xl bg-primary px-6 py-3 font-bold text-primary-foreground" data-testid="link-new-session-empty">
           {!starredOnly && <Plus className="h-5 w-5" />} {starredOnly ? 'See all sessions' : 'Log first session'}
         </Link>
       </div></>

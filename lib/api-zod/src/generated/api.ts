@@ -11,8 +11,14 @@ import * as zod from 'zod';
 /**
  * @summary List only the authenticated user's saved sessions
  */
+export const listSessionsQueryQMax = 120;
+
+
+
 export const ListSessionsQueryParams = zod.object({
-  "starredOnly": zod.enum(['true', 'false']).optional()
+  "starredOnly": zod.enum(['true', 'false']).optional(),
+  "q": zod.coerce.string().max(listSessionsQueryQMax).optional().describe('Case-insensitive literal substring of workout name; surrounding whitespace is ignored.'),
+  "sort": zod.enum(['newest', 'oldest']).optional()
 })
 
 export const ListSessionsResponseItem = zod.object({

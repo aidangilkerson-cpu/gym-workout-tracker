@@ -7,8 +7,8 @@ exception. Planning and feature work follow linked Issues, branches, and pull re
 
 ## Current feature
 
-Features 1–4 are merged and published: Clerk accounts, the nine-table workout
-data model, saved workout sessions, and friendly validation.
+Features 1–5 are merged and published: Clerk accounts, the nine-table workout
+data model, saved workout sessions, friendly validation, and stars.
 
 **Feature 3: session create / read / update / delete.**
 Signed-in users can save dated sessions with exercise entries, read
@@ -27,20 +27,28 @@ Routine checks and one signed-in mobile error/retry journey passed, including
 retained drafts on HTTP 503, mapped server field errors, and successful
 corrected saves. See `prompts/validation.md` for actual verification details.
 
-This branch implements **feature 5: Stars** in development. Star or unstar an
+Published **feature 5: Stars** lets users star or unstar an
 owned session from its list card or detail screen. Choose **Starred only** to
 view favorites or **All sessions** to return. The selected view stays in the
 URL on reload. Stars persist in the existing shared junction table; removing
 a star never deletes the session. Failed saves show an unconfirmed-change
 message and permit retry without falsely changing the displayed saved state.
+See `prompts/stars.md` for development and verification details.
+
+This branch implements **feature 6: Find things (search/sort)** in development.
+Search workout names case-insensitively and choose newest or oldest date order.
+Search, date order, and the stars view work together and persist in the URL.
+Search matches literal text, including `%`, `_`, and backslashes, not SQL
+patterns. Clear search preserves date order and the selected view. A no-matches
+state is distinct from an empty session history or favorites list.
 This feature is not published until its separately approved PR is reviewed
-and merged. See `prompts/stars.md` for development and verification details.
+and merged. See `prompts/find-things.md`.
 
 The account screen links to `/sessions`; create, detail, and edit routes are
 `/sessions/new`, `/sessions/:id`, and `/sessions/:id/edit`.
 Advanced individually editable per-set reps remain feature 9. If existing saved
 reps differ, this editor preserves them unless sets/reps are explicitly changed.
-Search/sort, dashboards, reusable templates
+Dashboards, reusable templates
 with version history, and repeat-session behavior remain their separate later
 features. No later feature is claimed as complete.
 
@@ -78,6 +86,10 @@ and `GET /api/sessions?starredOnly=true` for owned favorites. Omitting the
 filter or using `starredOnly=false` lists all owned sessions. Responses include
 the server-derived `starred` state; identity is never taken from request input.
 Repeated star or unstar requests are idempotent and cannot create duplicates.
+Feature 6 extends the owned session list with optional `q` (up to 120
+characters, trimmed literal workout-name substring) and `sort=newest|oldest`.
+Newest is the default. Equal dates use session ID in the same direction.
+Repeated/nested filters or invalid supported values return 400.
 Saves atomically update session metadata, exercise snapshots, and sets.
 A failed replacement rolls back, retaining the old saved session. Editing one
 session never edits another session, its template versions, or the library's
@@ -88,16 +100,16 @@ Run the real-development-database API tests:
 
 ```sh
 pnpm --filter @workspace/api-server run test
-pnpm --filter @workspace/gym-tracker exec node --test test/weight-step.test.mjs test/session-validation.test.mjs
+pnpm --filter @workspace/gym-tracker exec node --test test/weight-step.test.mjs test/session-validation.test.mjs test/session-filters.test.mjs
 pnpm run typecheck
 ```
 
-The thirteen routine Vitest + Supertest tests use real PostgreSQL; only provider identity is
+The sixteen routine Vitest + Supertest tests use real PostgreSQL; only provider identity is
 substituted within the test process. Each fixture rolls back, even on failure.
 There is no test-login header or authentication bypass in the running app.
 Never run fixture tests against production.
 
-The eighteen focused client checks use Node's built-in test runner and do not
+The twenty-four focused client checks use Node's built-in test runner and do not
 access the database. Nine cover weight-arrow movement and nine cover draft
 validation and API error mapping. These are routine verification, not the
 assignment's two separate required tests.

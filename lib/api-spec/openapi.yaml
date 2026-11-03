@@ -23,9 +23,22 @@ paths:
           schema:
             type: string
             enum: ["true", "false"]
+        - name: q
+          in: query
+          required: false
+          description: Case-insensitive literal substring of workout name; surrounding whitespace is ignored.
+          schema:
+            type: string
+            maxLength: 120
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [newest, oldest]
       responses:
         "200":
-          description: Saved sessions, newest first
+          description: Matching owned sessions in the requested date order; newest first by default
           content:
             application/json:
               schema:

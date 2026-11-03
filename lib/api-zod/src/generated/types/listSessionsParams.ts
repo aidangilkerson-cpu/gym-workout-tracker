@@ -5,8 +5,15 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ListSessionsSort } from './listSessionsSort';
 import type { ListSessionsStarredOnly } from './listSessionsStarredOnly';
 
 export type ListSessionsParams = {
 starredOnly?: ListSessionsStarredOnly;
+/**
+ * Case-insensitive literal substring of workout name; surrounding whitespace is ignored.
+ * @maxLength 120
+ */
+q?: string;
+sort?: ListSessionsSort;
 };
