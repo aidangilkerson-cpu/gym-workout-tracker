@@ -36,11 +36,18 @@ A personal gym training journal built for a school assignment, one feature at a 
   **Why:** this keeps account linking reliable without a separate webhook setup for this small assignment.
 - The eventual workout editing feature must retain earlier template versions and removed exercises' logged history.
   **Why:** the user explicitly wants routine changes without losing previous exercise data.
+- Cascade deletion only from an explicitly deleted session to its own exercises, sets, and stars; restrict deletion of referenced templates, versions, and library exercises.
+  **Why:** users may intentionally delete a logged session, but changing or retiring a routine must not erase training history.
+- Treat session dates as calendar-only strings and version timestamps as timezone-aware instants.
+  **Why:** converting a workout day to a JavaScript timestamp can shift its displayed date across timezones.
+- Future API handlers must authenticate and verify every linked record's owner. The schema's ownership foreign keys do not replace request authorization.
+  **Why:** the approved model does not duplicate user IDs on every child row; cross-account exercise/version links need explicit server checks.
 
 ## Product
 
-- Current approved scope: feature 1 only — signup, login, logout, linked users-table account, and protected account area.
-- Workout tables, logging, templates, stars, search, dashboard, and charts belong to later separate features.
+- Feature 1 is merged and published: signup, login, logout, and a protected linked-account area.
+- Current approved scope: feature 2 only — database models and relationships from the original plan, applied and verified in development.
+- Workout CRUD screens, template editing, starring behavior, search, dashboard, and charts belong to later separate features. Their underlying tables do not constitute those features.
 
 ## User preferences
 
