@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { Suspense, lazy, useEffect, useRef, type ReactNode } from 'react';
 import { ClerkProvider, Show, useClerk } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import { shadcn } from '@clerk/themes';
@@ -15,6 +15,9 @@ import SessionsPage from '@/pages/sessions';
 import NewSessionPage from '@/pages/session-new';
 import SessionDetailPage from '@/pages/session-detail';
 import EditSessionPage from '@/pages/session-edit';
+import { PageFrame, SkeletonBlock } from '@/components/session-shell';
+
+const DashboardPage = lazy(() => import('@/pages/dashboard'));
 
 const queryClient = new QueryClient();
 
@@ -127,6 +130,13 @@ function Protected({ children }: { children: ReactNode }) {
 const SessionsRoute = () => <Protected><SessionsPage /></Protected>;
 const NewSessionRoute = () => <Protected><NewSessionPage /></Protected>;
 const SessionDetailRoute = () => <Protected><SessionDetailPage /></Protected>;
+const DashboardRoute = () => (
+  <Protected>
+    <Suspense fallback={<PageFrame><SkeletonBlock testid="status-dashboard-loading" rows={4} /></PageFrame>}>
+      <DashboardPage />
+    </Suspense>
+  </Protected>
+);
 const EditSessionRoute = () => <Protected><EditSessionPage /></Protected>;
 
 function ClerkQueryClientCacheInvalidator() {
@@ -179,6 +189,7 @@ function ClerkProviderWithRoutes() {
               <Route path="/sign-in/*?" component={SignInPage} />
               <Route path="/sign-up/*?" component={SignUpPage} />
               <Route path="/user-portal" component={UserPortal} />
+              <Route path="/dashboard" component={DashboardRoute} />
               <Route path="/sessions" component={SessionsRoute} />
               <Route path="/sessions/new" component={NewSessionRoute} />
               <Route path="/sessions/:id/edit" component={EditSessionRoute} />

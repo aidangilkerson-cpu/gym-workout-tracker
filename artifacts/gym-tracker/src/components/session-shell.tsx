@@ -17,6 +17,7 @@ export function AppNav({ busy, confirmLogout }: NavGuard) {
   const [signingOut, setSigningOut] = useState(false);
 
   const items = [
+    { href: '/dashboard', label: 'Dashboard', testid: 'link-nav-dashboard', active: location === '/dashboard' },
     { href: '/sessions', label: 'Sessions', testid: 'link-nav-sessions', active: location.startsWith('/sessions') },
     { href: '/user-portal', label: 'Account', testid: 'link-nav-account', active: location === '/user-portal' },
   ];
@@ -32,14 +33,14 @@ export function AppNav({ busy, confirmLogout }: NavGuard) {
   return (
     <header className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 px-5 py-6 md:px-8">
       <BrandMark />
-      <div className="flex items-center gap-2">
-        <nav aria-label="Main" className="flex rounded-xl border border-border bg-card p-1">
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <nav aria-label="Main" className="flex min-w-0 flex-wrap rounded-xl border border-border bg-card p-1">
           {items.map((it) => (
             <Link
               key={it.href}
               href={it.href}
               aria-current={it.active ? 'page' : undefined}
-              className={`inline-flex h-10 items-center rounded-lg px-3.5 text-sm font-bold transition-colors ${it.active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+              className={`inline-flex h-10 items-center rounded-lg px-2.5 text-sm sm:px-3.5 font-bold transition-colors ${it.active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
               data-testid={it.testid}
             >
               {it.label}

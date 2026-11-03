@@ -42,13 +42,15 @@ A personal gym training journal built for a school assignment, one feature at a 
   **Why:** converting a workout day to a JavaScript timestamp can shift its displayed date across timezones.
 - Future API handlers must authenticate and verify every linked record's owner. The schema's ownership foreign keys do not replace request authorization.
   **Why:** the approved model does not duplicate user IDs on every child row; cross-account exercise/version links need explicit server checks.
+- Dashboard workout series follow the stable workout ID across linked versions. Sessions without a version link are grouped separately by their saved workout name; a matching name is not proof of template identity.
+  **Why:** pre-template logs must remain chartable without building feature 8 early or rewriting historical relationships. Do not automatically link old sessions to a new template just because names match.
 
 ## Product
 
 - Feature 1 is merged and published: signup, login, logout, and a protected linked-account area.
 - Feature 2 is merged and published; the nine production tables and their primary/foreign keys were verified read-only.
-- Features 3–5 and the one-pound weight-arrow fix are merged and published. Current approved scope is feature 6 only: workout-name search and date sorting, composed with stars filtering and URL-backed state. Stop before opening its PR.
-- Template editing, dashboard, and charts belong to later separate features. Their underlying tables do not constitute those features.
+- Features 3–6 and the one-pound weight-arrow fix are merged and published. Current approved scope is feature 7 only: dashboard totals, weekly sessions, exercise weight/reps progress, and workout volume. Stop before opening its PR.
+- Template editing, per-set editing, and repeat-session behavior belong to later separate features. Their underlying tables do not constitute those features.
 - The basic session editor uses a set count and uniform reps per exercise. Individually editable per-set reps remain feature 9; preserve any already-saved differing reps when editing unrelated fields. **Why:** the assignment's feature order must remain intact without overwriting existing data.
 - Feature 8 must let users create a reusable workout without logging a session; saving a workout and logging a dated session are separate actions. **Why:** the user explicitly reiterated that they want to prepare workouts without recording a session.
 

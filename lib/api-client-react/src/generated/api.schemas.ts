@@ -5,6 +5,67 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface WeeklySessions {
+  weekStart: string;
+  sessionCount: number;
+}
+
+export interface DashboardExercise {
+  id: number;
+  name: string;
+}
+
+export interface DashboardWorkout {
+  key: string;
+  name: string;
+}
+
+export interface ExerciseWeightPoint {
+  sessionId: number;
+  entryId: number;
+  date: string;
+  workoutName: string;
+  weightLb: number;
+}
+
+export interface ExerciseRepsPoint {
+  sessionId: number;
+  date: string;
+  workoutName: string;
+  totalReps: number;
+}
+
+export interface WorkoutVolumePoint {
+  sessionId: number;
+  date: string;
+  workoutName: string;
+  volumeLbReps: number;
+}
+
+export interface DashboardData {
+  /** @minimum 0 */
+  totalSessions: number;
+  /** @minimum 0 */
+  totalSets: number;
+  /** @minimum 0 */
+  totalReps: number;
+  /** Monday-start calendar weeks through the latest logged week, zero-filled; at most 104 weeks */
+  weekly: WeeklySessions[];
+  /** True when the weekly chart shows only the latest 104 weeks; all-time totals are unchanged */
+  weeklyWindowed: boolean;
+  exercises: DashboardExercise[];
+  workouts: DashboardWorkout[];
+  /** @nullable */
+  selectedExerciseId: number | null;
+  /** @nullable */
+  selectedWorkoutKey: string | null;
+  /** One point per logged exercise entry, retaining multiple entries/same-date values */
+  exerciseWeights: ExerciseWeightPoint[];
+  /** Total actual reps for the selected exercise across all its entries within each session */
+  exerciseReps: ExerciseRepsPoint[];
+  workoutVolume: WorkoutVolumePoint[];
+}
+
 export interface SessionSetInput {
   /**
      * @minimum 0
@@ -129,6 +190,19 @@ export type NotFoundResponse = ErrorResponse;
  * Account or session service temporarily unavailable
  */
 export type UnavailableResponse = ErrorResponse;
+
+export type GetDashboardParams = {
+/**
+ * @minimum 1
+ * @maximum 2147483647
+ */
+exerciseId?: number;
+/**
+ * @minLength 1
+ * @maxLength 160
+ */
+workoutKey?: string;
+};
 
 export type ListSessionsParams = {
 starredOnly?: ListSessionsStarredOnly;

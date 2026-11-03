@@ -1,2 +1,3 @@
 - [Artifact recovery after branch changes](artifact-branch-recovery.md) — restoring a manifest from Git may not restore app registration or its managed workflow.
 - [Retryable preference updates](retryable-preferences.md) — save the desired state rather than blindly toggling; lost acknowledgments must not reverse a favorite on retry.
+- [Browser test environment](browser-test-environment.md) — confirm the actual origin after programmatic Clerk login; a published-site request may redirect to Preview.

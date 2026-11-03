@@ -7,9 +7,15 @@
  */
 
 export * from './appUser';
+export * from './dashboardData';
+export * from './dashboardExercise';
+export * from './dashboardWorkout';
 export * from './errorResponse';
 export * from './errorResponseFieldErrors';
+export * from './exerciseRepsPoint';
+export * from './exerciseWeightPoint';
 export * from './forbiddenResponse';
+export * from './getDashboardParams';
 export * from './healthStatus';
 export * from './invalidInputResponse';
 export * from './listSessionsParams';
@@ -24,4 +30,6 @@ export * from './sessionSetRecord';
 export * from './starPreference';
 export * from './unauthorizedResponse';
 export * from './unavailableResponse';
+export * from './weeklySessions';
 export * from './workoutSessionRecord';
+export * from './workoutVolumePoint';

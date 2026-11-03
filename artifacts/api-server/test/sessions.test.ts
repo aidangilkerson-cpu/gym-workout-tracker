@@ -8,6 +8,7 @@ import {
   setsTable, starsTable, workoutsTable, workoutVersionsTable,
 } from "@workspace/db";
 import { createSessionsRouter } from "../src/routes/sessions";
+import { createDashboardRouter } from "../src/routes/dashboard";
 
 // Only provider identity is mocked. Routing, validation, authorization queries,
 // nested transactions and PostgreSQL relationships are real. This code is never
@@ -49,6 +50,7 @@ async function fixture(check: (data: Fixture) => Promise<void>) {
         next();
       });
       app.use("/api", createSessionsRouter(tx));
+      app.use("/api", createDashboardRouter(tx));
       await check({ app, tx, a, b });
       throw rollback;
     });
@@ -78,6 +80,98 @@ async function create(app: Express, user: string, data = input()) {
 afterAll(async () => { await pool.end(); });
 
 describe("Session API with real PostgreSQL (fixtures always rolled back)", () => {
+  it("derives real dashboard history, calendar weeks and distinct exercise observations", async () => {
+    await fixture(async ({ app, tx, a }) => {
+      const first = await create(app, a, { ...input(), workoutName: "Routine", date: "2026-01-04",
+        exercises: [{ exerciseName: "Bench", weightLb: 10.25, sets: [{ reps: 7 }, { reps: 5 }] }] });
+      const second = await create(app, a, { ...input(), workoutName: "Routine", date: "2026-01-05",
+        exercises: [
+          { exerciseName: "Bench", weightLb: 20.1, sets: [{ reps: 4 }] },
+          { exerciseName: "Bench", weightLb: 5.5, sets: [{ reps: 0 }, { reps: 2 }] },
+          { exerciseName: "Row", weightLb: 2, sets: [{ reps: 3 }] },
+        ] });
+      await create(app, a, { ...input(), workoutName: "Other", date: "2026-01-19",
+        exercises: [{ exerciseName: "Row", weightLb: 0, sets: [{ reps: 0 }] }] });
+      const exerciseId = first.exercises[0].exerciseId;
+      await tx.update(exercisesTable).set({ archived: true }).where(eq(exercisesTable.id, exerciseId));
+      const { body } = await request(app).get("/api/dashboard").set("x-test-account", a)
+        .query({ exerciseId, workoutKey: "name:Routine" }).expect(200);
+      expect([body.totalSessions, body.totalSets, body.totalReps]).toEqual([3, 7, 21]);
+      expect(body.weekly).toEqual([
+        { weekStart: "2025-12-29", sessionCount: 1 },
+        { weekStart: "2026-01-05", sessionCount: 1 },
+        { weekStart: "2026-01-12", sessionCount: 0 },
+        { weekStart: "2026-01-19", sessionCount: 1 },
+      ]);
+      expect(body.exerciseWeights.map((p: { weightLb: number }) => p.weightLb)).toEqual([10.25, 20.1, 5.5]);
+      expect(body.exerciseReps.map((p: { totalReps: number }) => p.totalReps)).toEqual([12, 6]);
+      expect(body.workoutVolume.map((p: { volumeLbReps: number }) => p.volumeLbReps)).toEqual([123, 97.4]);
+      expect(body.exercises.find((e: { id: number }) => e.id === exerciseId)).toBeTruthy();
+      expect(body.exerciseReps[1].sessionId).toBe(second.id);
+      expect(body.weeklyWindowed).toBe(false);
+      expect(body).not.toHaveProperty("notes");
+    });
+  });
+
+  it("keeps template-linked workout history together across immutable versions", async () => {
+    await fixture(async ({ app, tx, a }) => {
+      const [workout] = await tx.insert(workoutsTable).values({ userId: a, name: "Routine" }).returning();
+      const versions = await tx.insert(workoutVersionsTable).values([
+        { workoutId: workout.id, versionNumber: 1, workoutName: "Old routine" },
+        { workoutId: workout.id, versionNumber: 2, workoutName: "Renamed routine" },
+      ]).returning();
+      const first = await create(app, a, { ...input(), workoutName: "Old routine", date: "2026-01-01" });
+      const second = await create(app, a, { ...input(), workoutName: "Renamed routine", date: "2026-01-02" });
+      await tx.update(sessionsTable).set({ workoutVersionId: versions[0].id }).where(eq(sessionsTable.id, first.id));
+      await tx.update(sessionsTable).set({ workoutVersionId: versions[1].id }).where(eq(sessionsTable.id, second.id));
+      const { body } = await request(app).get("/api/dashboard").set("x-test-account", a)
+        .query({ workoutKey: `template:${workout.id}` }).expect(200);
+      expect(body.workouts).toHaveLength(1);
+      expect(body.workoutVolume.map((p: { workoutName: string }) => p.workoutName)).toEqual(["Old routine", "Renamed routine"]);
+    });
+  });
+
+  it("keeps precise decimal volumes and bounds extreme week ranges without losing totals", async () => {
+    await fixture(async ({ app, a }) => {
+      for (const date of ["0001-01-01", "9999-12-31"]) {
+        await create(app, a, { ...input(), workoutName: "Decimal", date,
+          exercises: [{ exerciseName: "Tiny", weightLb: 0.1, sets: [{ reps: 1 }, { reps: 2 }] }] });
+      }
+      const { body } = await request(app).get("/api/dashboard").set("x-test-account", a).expect(200);
+      expect([body.totalSessions, body.totalSets, body.totalReps]).toEqual([2, 4, 6]);
+      expect(body.weeklyWindowed).toBe(true);
+      expect(body.weekly).toHaveLength(104);
+      expect(body.weekly.at(-1)).toEqual({ weekStart: "9999-12-27", sessionCount: 1 });
+      expect(body.workoutVolume.map((p: { volumeLbReps: number }) => p.volumeLbReps)).toEqual([0.3, 0.3]);
+    });
+  });
+
+  it("guards dashboard selections, provides true zero states and safely retries failed reads", async () => {
+    await fixture(async ({ app, tx, a, b }) => {
+      const saved = await create(app, a);
+      await request(app).get("/api/dashboard").expect(401);
+      const empty = await request(app).get("/api/dashboard").set("x-test-account", b).expect(200);
+      expect([empty.body.totalSessions, empty.body.totalSets, empty.body.totalReps]).toEqual([0, 0, 0]);
+      expect(empty.body.exercises).toEqual([]);
+      expect(empty.body.workouts).toEqual([]);
+      expect(empty.body.weekly).toEqual([]);
+      expect(empty.body.selectedExerciseId).toBeNull();
+      for (const query of [
+        { exerciseId: saved.exercises[0].exerciseId }, { workoutKey: `name:${saved.workoutName}` },
+      ]) await request(app).get("/api/dashboard").query(query).set("x-test-account", b).expect(404);
+      for (const query of ["exerciseId=1.5", "exerciseId=-1", "exerciseId=1&exerciseId=2", "workoutKey[x]=y", "workoutKey="]) {
+        await request(app).get(`/api/dashboard?${query}`).set("x-test-account", a).expect(400);
+      }
+      const fail = vi.spyOn(tx.query.sessionsTable, "findMany").mockRejectedValueOnce(new Error("Private diagnostic"));
+      try {
+        const res = await request(app).get("/api/dashboard").set("x-test-account", a).expect(503);
+        expect(res.body.error).toContain("Please try again");
+        expect(JSON.stringify(res.body)).not.toContain("diagnostic");
+      } finally { fail.mockRestore(); }
+      expect((await request(app).get("/api/dashboard").set("x-test-account", a).expect(200)).body.totalSessions).toBe(1);
+    });
+  });
+
   it("searches literal workout names case-insensitively and sorts dates with stable ties", async () => {
     await fixture(async ({ app, a, b }) => {
       const older = await create(app, a, { ...input(), workoutName: "Upper 100%_\\ day", date: "2026-10-01" });
