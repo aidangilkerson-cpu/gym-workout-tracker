@@ -82,6 +82,36 @@ async function create(app: Express, user: string, data = input()) {
 afterAll(async () => { await pool.end(); });
 
 describe("Session API with real PostgreSQL (fixtures always rolled back)", () => {
+  it("saves a repeated result independently without carrying its star or mutating the original", async () => {
+    await fixture(async ({ app, a }) => {
+      const source = await create(app, a, {
+        ...input(), exercises: [{ exerciseName: "Bench", weightLb: 135.25, sets: [{ reps: 10 }, { reps: 8 }, { reps: 6 }] }],
+      });
+      await request(app).put(`/api/sessions/${source.id}/star`).set("x-test-account", a).send({ starred: true }).expect(200);
+      const original = (await request(app).get(`/api/sessions/${source.id}`).set("x-test-account", a).expect(200)).body;
+      const copy = (await request(app).post("/api/sessions").set("x-test-account", a).send({
+        workoutName: original.workoutName, date: "2026-11-03", notes: null, workoutVersionId: original.workoutVersionId,
+        exercises: original.exercises.map((ex: { exerciseId: number; exerciseName: string; weightLb: number; sets: { reps: number }[] }) => ({
+          exerciseId: ex.exerciseId, exerciseName: ex.exerciseName, weightLb: ex.weightLb,
+          sets: ex.sets.map(set => ({ reps: set.reps })),
+        })),
+      }).expect(201)).body;
+      expect(copy.id).not.toBe(original.id);
+      expect(copy.starred).toBe(false);
+      expect(copy.exercises[0].id).not.toBe(original.exercises[0].id);
+      const oldIds = new Set(original.exercises[0].sets.map((s: { id: number }) => s.id));
+      expect(copy.exercises[0].sets.every((s: { id: number }) => !oldIds.has(s.id))).toBe(true);
+      expect(copy.exercises[0].sets.map((s: { reps: number }) => s.reps)).toEqual([10, 8, 6]);
+      await request(app).put(`/api/sessions/${copy.id}`).set("x-test-account", a).send({
+        workoutName: copy.workoutName, date: copy.date, notes: "New session only",
+        exercises: [{ exerciseId: copy.exercises[0].exerciseId, exerciseName: "Bench", weightLb: 136.25, sets: [{ reps: 0 }, { reps: 5 }] }],
+      }).expect(200);
+      expect((await request(app).get(`/api/sessions/${source.id}`).set("x-test-account", a).expect(200)).body).toEqual(original);
+      await request(app).delete(`/api/sessions/${copy.id}`).set("x-test-account", a).expect(204);
+      expect((await request(app).get(`/api/sessions/${source.id}`).set("x-test-account", a).expect(200)).body).toEqual(original);
+    });
+  });
+
   it("versions reusable workouts without logging and preserves linked session history", async () => {
     await fixture(async ({ app, a, tx }) => {
       const api = (method: "get" | "post" | "put", path: string) => request(app)[method](path).set("x-test-account", a);

@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'wouter';
 import { useUnsavedGuard } from '@/hooks/use-unsaved-guard';
 import { useGetSession, useDeleteSession, getGetSessionQueryKey, getListSessionsQueryKey, getGetDashboardQueryKey } from '@workspace/api-client-react';
-import { ArrowLeft, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeft, Pencil, Repeat2, Trash2 } from 'lucide-react';
 import { AccountGate, ErrorPanel, PageFrame, SkeletonBlock, errorMessage, errorStatus, formatDate } from '@/components/session-shell';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { NotFoundPanel } from '@/pages/session-edit';
@@ -52,6 +52,9 @@ function Detail({ id, onBusy, go }: { id: number; onBusy: (b: boolean) => void; 
         <SessionStar id={id} starred={s.starred} name={s.workoutName} />
         <Link href={`/sessions/${id}/edit`} className="inline-flex h-12 items-center gap-2 rounded-xl bg-primary px-5 font-bold text-primary-foreground" data-testid="link-edit-session">
           <Pencil className="h-4 w-4" /> Edit
+        </Link>
+        <Link href={`/sessions/new?repeatSessionId=${id}`} title="Start a new session today with these numbers. This one stays unchanged." className="inline-flex h-12 items-center gap-2 rounded-xl border border-primary/50 bg-card px-5 font-semibold text-primary hover:bg-primary/10" data-testid="link-repeat-session">
+          <Repeat2 className="h-4 w-4" /> Repeat
         </Link>
         <button
           type="button"
