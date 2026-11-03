@@ -131,8 +131,31 @@ and the actual `/api/me` endpoint succeeded; no mocked response, manually
 inserted application row, middleware bypass, code change, or service
 configuration change was used.”
 
-**Limitations:** This verifies an authenticated session, account linking,
+**Automated-test limitations:** This verifies an authenticated session, account linking,
 refresh persistence, logout, and signed-out protection. It does not verify
 actual signup, entering a password, actual email delivery, or the
-email-verification screens. Those checks remain outstanding before the draft
-PR is ready to merge. No changes to feature scope or the original plan.
+email-verification screens. Those checks were outstanding at this point and
+were subsequently checked manually as recorded below. No changes to feature
+scope or the original plan.
+
+## Manual account checks confirmed by the user
+
+These results were reported by the user in Preview. They are separate from the
+automated browser results above and must not be presented as automated
+password-entry or email-delivery coverage.
+
+- **Password-policy observation:** The signup form required at least 15
+  characters. A 10-character minimum was requested but was not applied. The user
+  chose “Continue signup with 15 characters,” leaving the provider policy
+  unchanged for this verification.
+- **Signup and verification:** The user confirmed “Account created and verified.”
+- **Password-based login:** After being instructed to log out and sign in with
+  the newly created email and password, the user confirmed “Signed in and
+  account linked.”
+- **Refresh persistence:** After being instructed to refresh Preview, the user
+  confirmed “Still signed in and linked.”
+
+**Current boundary:** Account-flow verification is complete with automated
+session/protection checks and user-reported manual signup/password checks.
+Keep the PR as a draft pending approval to mark ready for review. Do not merge,
+publish, or begin another feature during this verification step.

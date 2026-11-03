@@ -56,7 +56,10 @@ identity and account ID, logout returned to the public homepage, and signed-out
 account requests and private-page visits were blocked. No app authentication
 bypass, mocked account response, or manually inserted application row was used.
 
-Actual signup, password-based login, email delivery, and the email-verification
-screens remain unverified. The feature PR remains a draft pending these checks.
+The user additionally confirmed manual signup and account verification,
+successful password-based login with the account linked, and remaining signed
+in after a refresh. These are user-reported manual results, not automated
+coverage of password entry or email delivery. The feature PR remains a draft
+until the user approves marking it ready for review.
 The assignment's workout-isolation and dashboard tests will be added when those
 features exist.
