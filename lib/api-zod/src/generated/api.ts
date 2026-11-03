@@ -8,6 +8,175 @@
 import * as zod from 'zod';
 
 
+export const ListExercisesResponseItem = zod.object({
+  "id": zod.number().int(),
+  "name": zod.string()
+})
+export const ListExercisesResponse = zod.array(ListExercisesResponseItem)
+
+
+export const ListWorkoutsQueryParams = zod.object({
+  "includeArchived": zod.enum(['true', 'false']).optional()
+})
+
+export const ListWorkoutsResponseItem = zod.object({
+  "id": zod.number().int(),
+  "name": zod.string(),
+  "archived": zod.boolean(),
+  "latestVersionId": zod.number().int().nullable(),
+  "latestVersionNumber": zod.number().int().nullable()
+})
+export const ListWorkoutsResponse = zod.array(ListWorkoutsResponseItem)
+
+
+export const createWorkoutBodyNameMax = 120;
+
+export const createWorkoutBodyExercisesItemExerciseIdMax = 2147483647;
+
+export const createWorkoutBodyExercisesItemExerciseNameMax = 120;
+
+export const createWorkoutBodyExercisesMax = 50;
+
+
+
+export const CreateWorkoutBody = zod.object({
+  "name": zod.string().min(1).max(createWorkoutBodyNameMax),
+  "exercises": zod.array(zod.object({
+  "exerciseId": zod.number().int().min(1).max(createWorkoutBodyExercisesItemExerciseIdMax).optional(),
+  "exerciseName": zod.string().min(1).max(createWorkoutBodyExercisesItemExerciseNameMax)
+})).min(1).max(createWorkoutBodyExercisesMax)
+})
+
+export const CreateWorkoutResponse = zod.object({
+  "id": zod.number().int(),
+  "name": zod.string(),
+  "archived": zod.boolean(),
+  "versions": zod.array(zod.object({
+  "id": zod.number().int(),
+  "workoutId": zod.number().int(),
+  "versionNumber": zod.number().int(),
+  "workoutName": zod.string(),
+  "savedAt": zod.string(),
+  "exercises": zod.array(zod.object({
+  "id": zod.number().int(),
+  "exerciseId": zod.number().int(),
+  "exerciseName": zod.string(),
+  "position": zod.number().int()
+}))
+}))
+})
+
+
+export const getWorkoutPathIdMax = 2147483647;
+
+
+
+export const GetWorkoutParams = zod.object({
+  "id": zod.coerce.number().int().min(1).max(getWorkoutPathIdMax)
+})
+
+export const GetWorkoutResponse = zod.object({
+  "id": zod.number().int(),
+  "name": zod.string(),
+  "archived": zod.boolean(),
+  "versions": zod.array(zod.object({
+  "id": zod.number().int(),
+  "workoutId": zod.number().int(),
+  "versionNumber": zod.number().int(),
+  "workoutName": zod.string(),
+  "savedAt": zod.string(),
+  "exercises": zod.array(zod.object({
+  "id": zod.number().int(),
+  "exerciseId": zod.number().int(),
+  "exerciseName": zod.string(),
+  "position": zod.number().int()
+}))
+}))
+})
+
+
+export const updateWorkoutPathIdMax = 2147483647;
+
+
+
+export const UpdateWorkoutParams = zod.object({
+  "id": zod.coerce.number().int().min(1).max(updateWorkoutPathIdMax)
+})
+
+export const updateWorkoutBodyOneNameMax = 120;
+
+export const updateWorkoutBodyOneExercisesItemExerciseIdMax = 2147483647;
+
+export const updateWorkoutBodyOneExercisesItemExerciseNameMax = 120;
+
+export const updateWorkoutBodyOneExercisesMax = 50;
+
+export const updateWorkoutBodyTwoExpectedVersionIdMax = 2147483647;
+
+
+
+export const UpdateWorkoutBody = zod.object({
+  "name": zod.string().min(1).max(updateWorkoutBodyOneNameMax),
+  "exercises": zod.array(zod.object({
+  "exerciseId": zod.number().int().min(1).max(updateWorkoutBodyOneExercisesItemExerciseIdMax).optional(),
+  "exerciseName": zod.string().min(1).max(updateWorkoutBodyOneExercisesItemExerciseNameMax)
+})).min(1).max(updateWorkoutBodyOneExercisesMax)
+}).and(zod.object({
+  "expectedVersionId": zod.number().int().min(1).max(updateWorkoutBodyTwoExpectedVersionIdMax)
+}))
+
+export const UpdateWorkoutResponse = zod.object({
+  "id": zod.number().int(),
+  "name": zod.string(),
+  "archived": zod.boolean(),
+  "versions": zod.array(zod.object({
+  "id": zod.number().int(),
+  "workoutId": zod.number().int(),
+  "versionNumber": zod.number().int(),
+  "workoutName": zod.string(),
+  "savedAt": zod.string(),
+  "exercises": zod.array(zod.object({
+  "id": zod.number().int(),
+  "exerciseId": zod.number().int(),
+  "exerciseName": zod.string(),
+  "position": zod.number().int()
+}))
+}))
+})
+
+
+export const setWorkoutArchivePathIdMax = 2147483647;
+
+
+
+export const SetWorkoutArchiveParams = zod.object({
+  "id": zod.coerce.number().int().min(1).max(setWorkoutArchivePathIdMax)
+})
+
+export const SetWorkoutArchiveBody = zod.object({
+  "archived": zod.boolean()
+})
+
+export const SetWorkoutArchiveResponse = zod.object({
+  "id": zod.number().int(),
+  "name": zod.string(),
+  "archived": zod.boolean(),
+  "versions": zod.array(zod.object({
+  "id": zod.number().int(),
+  "workoutId": zod.number().int(),
+  "versionNumber": zod.number().int(),
+  "workoutName": zod.string(),
+  "savedAt": zod.string(),
+  "exercises": zod.array(zod.object({
+  "id": zod.number().int(),
+  "exerciseId": zod.number().int(),
+  "exerciseName": zod.string(),
+  "position": zod.number().int()
+}))
+}))
+})
+
+
 /**
  * @summary Owned all-time totals and dated training progress
  */
@@ -110,6 +279,8 @@ export const ListSessionsResponse = zod.array(ListSessionsResponseItem)
 /**
  * @summary Save a dated session for the authenticated user
  */
+export const createSessionBodyWorkoutVersionIdMax = 2147483647;
+
 export const createSessionBodyWorkoutNameMax = 120;
 
 export const createSessionBodyDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
@@ -132,6 +303,7 @@ export const createSessionBodyExercisesMax = 50;
 
 
 export const CreateSessionBody = zod.object({
+  "workoutVersionId": zod.number().int().min(1).max(createSessionBodyWorkoutVersionIdMax).nullish().describe('Optional concrete version used to start a new session. An existing session\'s version link cannot be changed.'),
   "workoutName": zod.string().min(1).max(createSessionBodyWorkoutNameMax),
   "date": zod.string().regex(createSessionBodyDateRegExp),
   "notes": zod.string().max(createSessionBodyNotesMax).nullable(),
@@ -209,6 +381,8 @@ export const UpdateSessionParams = zod.object({
   "id": zod.coerce.number().int().min(1)
 })
 
+export const updateSessionBodyWorkoutVersionIdMax = 2147483647;
+
 export const updateSessionBodyWorkoutNameMax = 120;
 
 export const updateSessionBodyDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
@@ -231,6 +405,7 @@ export const updateSessionBodyExercisesMax = 50;
 
 
 export const UpdateSessionBody = zod.object({
+  "workoutVersionId": zod.number().int().min(1).max(updateSessionBodyWorkoutVersionIdMax).nullish().describe('Optional concrete version used to start a new session. An existing session\'s version link cannot be changed.'),
   "workoutName": zod.string().min(1).max(updateSessionBodyWorkoutNameMax),
   "date": zod.string().regex(updateSessionBodyDateRegExp),
   "notes": zod.string().max(updateSessionBodyNotesMax).nullable(),

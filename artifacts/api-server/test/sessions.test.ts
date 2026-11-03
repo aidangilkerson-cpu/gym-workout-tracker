@@ -9,6 +9,7 @@ import {
 } from "@workspace/db";
 import { createSessionsRouter } from "../src/routes/sessions";
 import { createDashboardRouter } from "../src/routes/dashboard";
+import { createWorkoutsRouter } from "../src/routes/workouts";
 
 // Only provider identity is mocked. Routing, validation, authorization queries,
 // nested transactions and PostgreSQL relationships are real. This code is never
@@ -51,6 +52,7 @@ async function fixture(check: (data: Fixture) => Promise<void>) {
       });
       app.use("/api", createSessionsRouter(tx));
       app.use("/api", createDashboardRouter(tx));
+      app.use("/api", createWorkoutsRouter(tx));
       await check({ app, tx, a, b });
       throw rollback;
     });
@@ -80,6 +82,128 @@ async function create(app: Express, user: string, data = input()) {
 afterAll(async () => { await pool.end(); });
 
 describe("Session API with real PostgreSQL (fixtures always rolled back)", () => {
+  it("versions reusable workouts without logging and preserves linked session history", async () => {
+    await fixture(async ({ app, a, tx }) => {
+      const api = (method: "get" | "post" | "put", path: string) => request(app)[method](path).set("x-test-account", a);
+      const w1 = (await api("post", "/api/workouts").send({
+        name: " Upper ", exercises: [{ exerciseName: "Bench" }, { exerciseName: "Row" }],
+      }).expect(201)).body;
+      const v1 = w1.versions[0];
+      expect(v1.versionNumber).toBe(1);
+      expect(Number.isNaN(Date.parse(v1.savedAt))).toBe(false);
+      expect((await api("get", "/api/sessions").expect(200)).body).toEqual([]);
+      const logged = (await api("post", "/api/sessions").send({ ...input(), workoutName: "Upper", workoutVersionId: v1.id,
+        exercises: [
+          { exerciseId: v1.exercises[0].exerciseId, exerciseName: "Bench", weightLb: 135.25, sets: [{ reps: 7 }, { reps: 5 }] },
+          { exerciseId: v1.exercises[1].exerciseId, exerciseName: "Row", weightLb: 70, sets: [{ reps: 3 }] },
+        ] }).expect(201)).body;
+      const w2 = (await api("put", `/api/workouts/${w1.id}`).send({
+        expectedVersionId: v1.id, name: "Upper revised",
+        exercises: [{ exerciseId: v1.exercises[1].exerciseId, exerciseName: "Row" }, { exerciseName: "Squat" }],
+      }).expect(200)).body;
+      const v2 = w2.versions[0];
+      expect(w2.versions.map((v: { versionNumber: number }) => v.versionNumber)).toEqual([2, 1]);
+      expect(w2.versions[1]).toEqual(v1);
+      expect(v2.exercises.map((e: { exerciseName: string }) => e.exerciseName)).toEqual(["Row", "Squat"]);
+      expect(v2.exercises[0].exerciseId).toBe(v1.exercises[1].exerciseId);
+      expect((await api("get", `/api/sessions/${logged.id}`).expect(200)).body).toEqual(logged);
+      // A draft started from v1 can finish after v2 exists, without substitution.
+      await api("post", "/api/sessions").send({ ...input(), workoutVersionId: v1.id, workoutName: "Upper",
+        exercises: [{ exerciseId: v1.exercises[0].exerciseId, exerciseName: "Bench", weightLb: 135.25, sets: [{ reps: 1 }] }],
+      }).expect(201);
+      const newer = (await api("post", "/api/sessions").send({ ...input(), workoutVersionId: v2.id, workoutName: "Upper revised",
+        exercises: [
+          { exerciseId: v2.exercises[0].exerciseId, exerciseName: "Row", weightLb: 70.5, sets: [{ reps: 2 }, { reps: 0 }] },
+          { exerciseId: v2.exercises[1].exerciseId, exerciseName: "Squat", weightLb: 0, sets: [{ reps: 4 }] },
+        ],
+      }).expect(201)).body;
+      expect(newer.workoutVersionId).toBe(v2.id);
+      await tx.update(exercisesTable).set({ archived: true }).where(eq(exercisesTable.id, v1.exercises[0].exerciseId));
+      const dash = (await api("get", `/api/dashboard?workoutKey=template:${w1.id}`).expect(200)).body;
+      expect([dash.totalSessions, dash.totalSets, dash.totalReps]).toEqual([3, 7, 22]);
+      expect(dash.workoutVolume.map((p: { volumeLbReps: number }) => p.volumeLbReps)).toEqual([1833, 135.25, 141]);
+      expect(dash.exercises.some((e: { id: number }) => e.id === v1.exercises[0].exerciseId)).toBe(true);
+      expect((await api("get", "/api/exercises").expect(200)).body.some((e: { id: number }) => e.id === v1.exercises[0].exerciseId)).toBe(false);
+      const originalInput = { ...input(), workoutName: "Corrected log",
+        exercises: logged.exercises.map((e: { exerciseId: number; exerciseName: string; weightLb: number; sets: { reps: number }[] }) =>
+          ({ exerciseId: e.exerciseId, exerciseName: e.exerciseName, weightLb: e.weightLb, sets: e.sets.map(s => ({ reps: s.reps })) })),
+      };
+      const edited = (await api("put", `/api/sessions/${logged.id}`).send(originalInput).expect(200)).body;
+      expect(edited.workoutVersionId).toBe(v1.id);
+      await api("put", `/api/sessions/${logged.id}`).send({ ...originalInput, workoutVersionId: v2.id }).expect(409);
+      expect((await api("get", `/api/sessions/${logged.id}`).expect(200)).body).toEqual(edited);
+    });
+  });
+
+  it("archives idempotently without deleting versions and refuses new archived-workout sessions", async () => {
+    await fixture(async ({ app, a }) => {
+      const w = (await request(app).post("/api/workouts").set("x-test-account", a)
+        .send({ name: "Archive check", exercises: [{ exerciseName: "Lift" }] }).expect(201)).body;
+      for (let i = 0; i < 2; i++) {
+        const archived = (await request(app).put(`/api/workouts/${w.id}/archive`).set("x-test-account", a).send({ archived: true }).expect(200)).body;
+        expect(archived.versions).toEqual(w.versions);
+      }
+      expect((await request(app).get("/api/workouts").set("x-test-account", a).expect(200)).body).toEqual([]);
+      expect((await request(app).get("/api/workouts?includeArchived=true").set("x-test-account", a).expect(200)).body[0].archived).toBe(true);
+      await request(app).post("/api/sessions").set("x-test-account", a).send({ ...input(), workoutVersionId: w.versions[0].id }).expect(409);
+      expect((await request(app).get("/api/sessions").set("x-test-account", a).expect(200)).body).toEqual([]);
+      await request(app).put(`/api/workouts/${w.id}/archive`).set("x-test-account", a).send({ archived: false }).expect(200);
+      expect((await request(app).get(`/api/workouts/${w.id}`).set("x-test-account", a).expect(200)).body).toEqual(w);
+    });
+  });
+
+  it("rejects stale edits and rolls back failed versions without overwriting current data", async () => {
+    await fixture(async ({ app, a, b, tx }) => {
+      const w = (await request(app).post("/api/workouts").set("x-test-account", a)
+        .send({ name: "Original", exercises: [{ exerciseName: "Keep" }] }).expect(201)).body;
+      const next = { name: "Updated", expectedVersionId: w.versions[0].id, exercises: [{ exerciseName: "Keep" }] };
+      const saved = (await request(app).put(`/api/workouts/${w.id}`).set("x-test-account", a).send(next).expect(200)).body;
+      await request(app).put(`/api/workouts/${w.id}`).set("x-test-account", a).send(next).expect(409);
+      const [foreign] = await tx.insert(exercisesTable).values({ userId: b, name: "Foreign" }).returning();
+      await request(app).put(`/api/workouts/${w.id}`).set("x-test-account", a).send({
+        name: "Must roll back", expectedVersionId: saved.versions[0].id, exercises: [{ exerciseId: foreign.id, exerciseName: "Foreign" }],
+      }).expect(404);
+      expect((await request(app).get(`/api/workouts/${w.id}`).set("x-test-account", a).expect(200)).body).toEqual(saved);
+      const fail = vi.spyOn(tx.query.workoutsTable, "findFirst").mockRejectedValueOnce(new Error("Private database diagnostic"));
+      try {
+        const res = await request(app).get(`/api/workouts/${w.id}`).set("x-test-account", a).expect(503);
+        expect(JSON.stringify(res.body)).not.toContain("diagnostic");
+      } finally { fail.mockRestore(); }
+      await request(app).get(`/api/workouts/${w.id}`).set("x-test-account", a).expect(200);
+    });
+  });
+
+  it("validates workout input and checks every linked exercise and version owner", async () => {
+    await fixture(async ({ app, a, b, tx }) => {
+      await request(app).get("/api/workouts").expect(401);
+      await request(app).get("/api/exercises").expect(401);
+      const w = (await request(app).post("/api/workouts").set("x-test-account", a)
+        .send({ name: "Owned", exercises: [{ exerciseName: "Own lift" }] }).expect(201)).body;
+      await request(app).get(`/api/workouts/${w.id}`).set("x-test-account", b).expect(404);
+      await request(app).put(`/api/workouts/${w.id}`).set("x-test-account", b)
+        .send({ name: "Hijack", expectedVersionId: w.versions[0].id, exercises: [{ exerciseName: "No" }] }).expect(404);
+      await request(app).put(`/api/workouts/${w.id}/archive`).set("x-test-account", b).send({ archived: true }).expect(404);
+      await request(app).post("/api/sessions").set("x-test-account", b).send({ ...input(), workoutVersionId: w.versions[0].id }).expect(404);
+      await request(app).post("/api/workouts").set("x-test-account", b).send({
+        name: "Foreign exercise", exercises: [{ exerciseId: w.versions[0].exercises[0].exerciseId, exerciseName: "No" }],
+      }).expect(404);
+      expect((await request(app).get("/api/workouts").set("x-test-account", b).expect(200)).body).toEqual([]);
+      for (const body of [
+        { name: " ", exercises: [{ exerciseName: "Lift" }] }, { name: "Empty", exercises: [] },
+        { name: "Blank", exercises: [{ exerciseName: " " }] },
+        { name: "Bad id", exercises: [{ exerciseName: "Lift", exerciseId: 1.5 }] },
+      ]) await request(app).post("/api/workouts").set("x-test-account", a).send(body).expect(400);
+      for (const query of ["includeArchived=yes", "includeArchived=true&includeArchived=false", "includeArchived[x]=true"]) {
+        await request(app).get(`/api/workouts?${query}`).set("x-test-account", a).expect(400);
+      }
+      const [archived] = await tx.insert(exercisesTable).values({ userId: a, name: "Retired", archived: true }).returning();
+      await request(app).post("/api/workouts").set("x-test-account", a).send({
+        name: "No new archived choice", exercises: [{ exerciseName: "Retired", exerciseId: archived.id }],
+      }).expect(404);
+      expect((await request(app).get("/api/workouts").set("x-test-account", a).expect(200)).body).toHaveLength(1);
+    });
+  });
+
   it("derives real dashboard history, calendar weeks and distinct exercise observations", async () => {
     await fixture(async ({ app, tx, a }) => {
       const first = await create(app, a, { ...input(), workoutName: "Routine", date: "2026-01-04",
@@ -478,7 +602,7 @@ describe("Session API with real PostgreSQL (fixtures always rolled back)", () =>
     });
   });
 
-  it("rejects invalid writes and ignores attempts to assign the owner or version from request input", async () => {
+  it("rejects invalid writes and unsafe version links, and derives the owner on the server", async () => {
     await fixture(async ({ app, a, b }) => {
       for (const data of [
         { ...input(), workoutName: " " },
@@ -490,7 +614,9 @@ describe("Session API with real PostgreSQL (fixtures always rolled back)", () =>
       ]) {
         await request(app).post("/api/sessions").set("x-test-account", a).send(data).expect(400);
       }
-      const saved = await create(app, a, { ...input(), userId: b, workoutVersionId: 123 } as ReturnType<typeof input>);
+      await request(app).post("/api/sessions").set("x-test-account", a)
+        .send({ ...input(), userId: b, workoutVersionId: 123 }).expect(404);
+      const saved = await create(app, a, { ...input(), userId: b } as ReturnType<typeof input>);
       expect(saved.workoutVersionId).toBeNull();
       expect((await request(app).get("/api/sessions").set("x-test-account", b).expect(200)).body).toEqual([]);
       await request(app).get("/api/sessions/1.5").set("x-test-account", a).expect(404);

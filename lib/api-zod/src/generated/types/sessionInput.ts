@@ -9,6 +9,13 @@ import type { SessionExerciseInput } from './sessionExerciseInput';
 
 export interface SessionInput {
   /**
+     * Optional concrete version used to start a new session. An existing session's version link cannot be changed.
+     * @minimum 1
+     * @maximum 2147483647
+     * @nullable
+     */
+  workoutVersionId?: number | null;
+  /**
      * @minLength 1
      * @maxLength 120
      */

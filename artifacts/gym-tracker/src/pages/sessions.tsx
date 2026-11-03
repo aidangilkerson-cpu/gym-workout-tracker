@@ -88,9 +88,14 @@ export default function SessionsPage() {
           <p className="rise font-mono text-xs uppercase tracking-[0.3em] text-primary">Training ledger</p>
           <h1 className="rise mt-3 text-5xl font-black uppercase leading-[0.9] md:text-7xl" style={{ animationDelay: '60ms' }}>Sessions.</h1>
         </div>
+        <div className="flex flex-wrap gap-2">
+        <Link href="/workouts" className="rise inline-flex h-14 items-center gap-2 rounded-2xl border border-border bg-card px-5 font-bold hover:border-primary/60" data-testid="link-start-workout">
+          Start workout
+        </Link>
         <Link href="/sessions/new" className="rise inline-flex h-14 items-center gap-2 rounded-2xl bg-primary px-6 font-bold text-primary-foreground active:scale-[0.98]" data-testid="link-new-session">
           <Plus className="h-5 w-5" /> New session
         </Link>
+        </div>
       </div>
       <div className="mt-8">
         <AccountGate><SessionList /></AccountGate>

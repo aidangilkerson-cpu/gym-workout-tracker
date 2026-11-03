@@ -34,8 +34,10 @@ A personal gym training journal built for a school assignment, one feature at a 
 - Clerk manages passwords and sessions. The app must never implement local passwords or browser bearer-token handling.
 - Application account rows are provisioned idempotently on authenticated account access using Clerk's verified identity, not client-supplied IDs or email.
   **Why:** this keeps account linking reliable without a separate webhook setup for this small assignment.
-- The eventual workout editing feature must retain earlier template versions and removed exercises' logged history.
+- Workout editing must retain earlier template versions and removed exercises' logged history.
   **Why:** the user explicitly wants routine changes without losing previous exercise data.
+- Starting a template session must fetch the latest saved version before opening the draft, then keep that concrete version for the entire draft. An existing logged session's version link cannot be changed.
+  **Why:** a cached template or a background update must not silently change the workout that the user actually started.
 - Cascade deletion only from an explicitly deleted session to its own exercises, sets, and stars; restrict deletion of referenced templates, versions, and library exercises.
   **Why:** users may intentionally delete a logged session, but changing or retiring a routine must not erase training history.
 - Treat session dates as calendar-only strings and version timestamps as timezone-aware instants.
@@ -49,8 +51,10 @@ A personal gym training journal built for a school assignment, one feature at a 
 
 - Feature 1 is merged and published: signup, login, logout, and a protected linked-account area.
 - Feature 2 is merged and published; the nine production tables and their primary/foreign keys were verified read-only.
-- Features 3–6 and the one-pound weight-arrow fix are merged and published. Current approved scope is feature 7 only: dashboard totals, weekly sessions, exercise weight/reps progress, and workout volume. Stop before opening its PR.
-- Template editing, per-set editing, and repeat-session behavior belong to later separate features. Their underlying tables do not constitute those features.
+- Features 1–7 and the one-pound weight-arrow fix are merged and published. Current approved scope is feature 8 only: reusable workout templates, immutable dated version history, and starting sessions from the latest saved version. Stop before opening its PR.
+- Template editing is feature 8, per-set editing is feature 9, and repeat-session behavior is feature 10. Their underlying tables do not constitute those features.
+- Feature 10 must offer the previous weight, sets, and reps when starting a saved preset, clearly noting that those numbers are what was done "Last time" until the user fills in the new numbers. This is a planned requirement only; implement it in feature 10, not feature 8 or 9.
+  **Why:** the user requested: "yes plan that behavior and make it so it notes that is what you did last time until you fill in the new numbers".
 - The basic session editor uses a set count and uniform reps per exercise. Individually editable per-set reps remain feature 9; preserve any already-saved differing reps when editing unrelated fields. **Why:** the assignment's feature order must remain intact without overwriting existing data.
 - Feature 8 must let users create a reusable workout without logging a session; saving a workout and logging a dated session are separate actions. **Why:** the user explicitly reiterated that they want to prepare workouts without recording a session.
 

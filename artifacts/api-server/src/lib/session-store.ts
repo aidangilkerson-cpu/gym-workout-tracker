@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, ilike, inArray } from "drizzle-orm";
 import {
-  db, usersTable, exercisesTable, sessionsTable, sessionExercisesTable, setsTable, starsTable,
+  db, usersTable, exercisesTable, sessionsTable, sessionExercisesTable, setsTable, starsTable, workoutVersionsTable,
 } from "@workspace/db";
 import type { SessionInput, ListSessionsParams } from "@workspace/api-zod";
 
@@ -9,6 +9,7 @@ export type SessionDatabase = Pick<typeof db,
 type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export class SessionNotFound extends Error {}
+export class SessionConflict extends Error {}
 
 const contents = {
   exercises: {
@@ -117,18 +118,31 @@ export async function saveOwnedSession(
       .where(eq(usersTable.id, userId)).for("update");
     let sessionId = id;
     if (sessionId !== undefined) {
-      const [owned] = await tx.select({ id: sessionsTable.id }).from(sessionsTable)
+      const [owned] = await tx.select({ id: sessionsTable.id, workoutVersionId: sessionsTable.workoutVersionId }).from(sessionsTable)
         .where(and(eq(sessionsTable.id, sessionId), eq(sessionsTable.userId, userId)))
         .for("update");
       if (!owned) throw new SessionNotFound();
+      if (input.workoutVersionId !== undefined && input.workoutVersionId !== owned.workoutVersionId) {
+        throw new SessionConflict("A saved session keeps its original workout version. Its results have not been changed.");
+      }
       await tx.update(sessionsTable).set({
         workoutName: input.workoutName.trim(), date: input.date, notes: input.notes,
       }).where(and(eq(sessionsTable.id, sessionId), eq(sessionsTable.userId, userId)));
       // All replacement work is one transaction: errors retain the old session.
       await tx.delete(sessionExercisesTable).where(eq(sessionExercisesTable.sessionId, sessionId));
     } else {
+      if (input.workoutVersionId != null) {
+        const version = await tx.query.workoutVersionsTable.findFirst({
+          where: eq(workoutVersionsTable.id, input.workoutVersionId), with: { workout: true },
+        });
+        if (!version || version.workout.userId !== userId) throw new SessionNotFound();
+        if (version.workout.archived) {
+          throw new SessionConflict("This workout was archived. Restore it before logging the session; your draft is unchanged.");
+        }
+      }
       const [created] = await tx.insert(sessionsTable).values({
         userId, workoutName: input.workoutName.trim(), date: input.date, notes: input.notes,
+        workoutVersionId: input.workoutVersionId ?? null,
       }).returning({ id: sessionsTable.id });
       sessionId = created.id;
     }

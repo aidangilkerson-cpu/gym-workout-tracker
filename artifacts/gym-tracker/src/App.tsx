@@ -15,6 +15,9 @@ import SessionsPage from '@/pages/sessions';
 import NewSessionPage from '@/pages/session-new';
 import SessionDetailPage from '@/pages/session-detail';
 import EditSessionPage from '@/pages/session-edit';
+import WorkoutsPage from '@/pages/workouts';
+import WorkoutDetailPage from '@/pages/workout-detail';
+import { NewWorkoutPage, EditWorkoutPage } from '@/pages/workout-edit';
 import { PageFrame, SkeletonBlock } from '@/components/session-shell';
 
 const DashboardPage = lazy(() => import('@/pages/dashboard'));
@@ -138,6 +141,10 @@ const DashboardRoute = () => (
   </Protected>
 );
 const EditSessionRoute = () => <Protected><EditSessionPage /></Protected>;
+const WorkoutsRoute = () => <Protected><WorkoutsPage /></Protected>;
+const NewWorkoutRoute = () => <Protected><NewWorkoutPage /></Protected>;
+const EditWorkoutRoute = () => <Protected><EditWorkoutPage /></Protected>;
+const WorkoutDetailRoute = () => <Protected><WorkoutDetailPage /></Protected>;
 
 function ClerkQueryClientCacheInvalidator() {
   const { addListener } = useClerk();
@@ -194,6 +201,10 @@ function ClerkProviderWithRoutes() {
               <Route path="/sessions/new" component={NewSessionRoute} />
               <Route path="/sessions/:id/edit" component={EditSessionRoute} />
               <Route path="/sessions/:id" component={SessionDetailRoute} />
+              <Route path="/workouts" component={WorkoutsRoute} />
+              <Route path="/workouts/new" component={NewWorkoutRoute} />
+              <Route path="/workouts/:id/edit" component={EditWorkoutRoute} />
+              <Route path="/workouts/:id" component={WorkoutDetailRoute} />
               <Route component={NotFound} />
             </Switch>
           </RoutedErrorBoundary>

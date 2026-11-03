@@ -26,19 +26,27 @@ import type {
 
 import type {
   AppUser,
+  ArchivePreference,
+  ConflictResponse,
   DashboardData,
+  DashboardExercise,
   ErrorResponse,
   ForbiddenResponse,
   GetDashboardParams,
   HealthStatus,
   InvalidInputResponse,
   ListSessionsParams,
+  ListWorkoutsParams,
   NotFoundResponse,
   SessionInput,
   StarPreference,
   UnauthorizedResponse,
   UnavailableResponse,
-  WorkoutSessionRecord
+  WorkoutDetail,
+  WorkoutInput,
+  WorkoutSessionRecord,
+  WorkoutSummary,
+  WorkoutUpdateInput
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -67,6 +75,546 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getListExercisesUrl = () => {
+
+
+
+
+  return `/api/exercises`
+}
+
+export const listExercises = async ( options?: Parameters<typeof customFetch>[1]): Promise<DashboardExercise[]> => {
+
+  return customFetch<DashboardExercise[]>(getListExercisesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListExercisesQueryKey = () => {
+    return [
+    `/api/exercises`
+    ] as const;
+    }
+
+
+export const getListExercisesQueryOptions = <TData = Awaited<ReturnType<typeof listExercises>>, TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | UnavailableResponse>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listExercises>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListExercisesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listExercises>>> = ({ signal }) => listExercises({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listExercises>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListExercisesQueryResult = NonNullable<Awaited<ReturnType<typeof listExercises>>>
+export type ListExercisesQueryError = ErrorType<UnauthorizedResponse | ForbiddenResponse | UnavailableResponse>
+
+
+export function useListExercises<TData = Awaited<ReturnType<typeof listExercises>>, TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | UnavailableResponse>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listExercises>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listExercises>>,
+          TError,
+          Awaited<ReturnType<typeof listExercises>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListExercises<TData = Awaited<ReturnType<typeof listExercises>>, TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | UnavailableResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listExercises>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listExercises>>,
+          TError,
+          Awaited<ReturnType<typeof listExercises>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListExercises<TData = Awaited<ReturnType<typeof listExercises>>, TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | UnavailableResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listExercises>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useListExercises<TData = Awaited<ReturnType<typeof listExercises>>, TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | UnavailableResponse>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listExercises>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListExercisesQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListWorkoutsUrl = (params?: ListWorkoutsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/workouts?${stringifiedParams}` : `/api/workouts`
+}
+
+export const listWorkouts = async (params?: ListWorkoutsParams, options?: Parameters<typeof customFetch>[1]): Promise<WorkoutSummary[]> => {
+
+  return customFetch<WorkoutSummary[]>(getListWorkoutsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListWorkoutsQueryKey = (params?: ListWorkoutsParams,) => {
+    return [
+    `/api/workouts`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListWorkoutsQueryOptions = <TData = Awaited<ReturnType<typeof listWorkouts>>, TError = ErrorType<InvalidInputResponse | UnauthorizedResponse | ForbiddenResponse | UnavailableResponse>>(params?: ListWorkoutsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listWorkouts>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListWorkoutsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listWorkouts>>> = ({ signal }) => listWorkouts(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listWorkouts>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListWorkoutsQueryResult = NonNullable<Awaited<ReturnType<typeof listWorkouts>>>
+export type ListWorkoutsQueryError = ErrorType<InvalidInputResponse | UnauthorizedResponse | ForbiddenResponse | UnavailableResponse>
+
+
+export function useListWorkouts<TData = Awaited<ReturnType<typeof listWorkouts>>, TError = ErrorType<InvalidInputResponse | UnauthorizedResponse | ForbiddenResponse | UnavailableResponse>>(
+ params: undefined |  ListWorkoutsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listWorkouts>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listWorkouts>>,
+          TError,
+          Awaited<ReturnType<typeof listWorkouts>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListWorkouts<TData = Awaited<ReturnType<typeof listWorkouts>>, TError = ErrorType<InvalidInputResponse | UnauthorizedResponse | ForbiddenResponse | UnavailableResponse>>(
+ params?: ListWorkoutsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listWorkouts>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listWorkouts>>,
+          TError,
+          Awaited<ReturnType<typeof listWorkouts>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListWorkouts<TData = Awaited<ReturnType<typeof listWorkouts>>, TError = ErrorType<InvalidInputResponse | UnauthorizedResponse | ForbiddenResponse | UnavailableResponse>>(
+ params?: ListWorkoutsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listWorkouts>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useListWorkouts<TData = Awaited<ReturnType<typeof listWorkouts>>, TError = ErrorType<InvalidInputResponse | UnauthorizedResponse | ForbiddenResponse | UnavailableResponse>>(
+ params?: ListWorkoutsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listWorkouts>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListWorkoutsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateWorkoutUrl = () => {
+
+
+
+
+  return `/api/workouts`
+}
+
+export const createWorkout = async (workoutInput: WorkoutInput, options?: Parameters<typeof customFetch>[1]): Promise<WorkoutDetail> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<WorkoutDetail>(getCreateWorkoutUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(workoutInput)
+  }
+);}
+
+
+
+
+
+export const getCreateWorkoutMutationKey = () => ['createWorkout'] as const;
+
+export const getCreateWorkoutMutationOptions = <TError = ErrorType<InvalidInputResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | UnavailableResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createWorkout>>, TError,CreateWorkoutMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createWorkout>>, TError,CreateWorkoutMutationVariables, TContext> => {
+
+const mutationKey = getCreateWorkoutMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createWorkout>>, CreateWorkoutMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createWorkout(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateWorkoutMutationResult = NonNullable<Awaited<ReturnType<typeof createWorkout>>>
+    export type CreateWorkoutMutationBody = BodyType<WorkoutInput>
+    export type CreateWorkoutMutationError = ErrorType<InvalidInputResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | UnavailableResponse>
+    export type CreateWorkoutMutationVariables = {data: BodyType<WorkoutInput>}
+
+    export const useCreateWorkout = <TError = ErrorType<InvalidInputResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | UnavailableResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createWorkout>>, TError,CreateWorkoutMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createWorkout>>,
+        TError,
+        CreateWorkoutMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateWorkoutMutationOptions(options), queryClient);
+    }
+
+export const getGetWorkoutUrl = (id: number,) => {
+
+
+
+
+  return `/api/workouts/${id}`
+}
+
+export const getWorkout = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<WorkoutDetail> => {
+
+  return customFetch<WorkoutDetail>(getGetWorkoutUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetWorkoutQueryKey = (id: number,) => {
+    return [
+    `/api/workouts/${id}`
+    ] as const;
+    }
+
+
+export const getGetWorkoutQueryOptions = <TData = Awaited<ReturnType<typeof getWorkout>>, TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | UnavailableResponse>>(id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getWorkout>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetWorkoutQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWorkout>>> = ({ signal }) => getWorkout(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getWorkout>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetWorkoutQueryResult = NonNullable<Awaited<ReturnType<typeof getWorkout>>>
+export type GetWorkoutQueryError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | UnavailableResponse>
+
+
+export function useGetWorkout<TData = Awaited<ReturnType<typeof getWorkout>>, TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | UnavailableResponse>>(
+ id: number, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getWorkout>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getWorkout>>,
+          TError,
+          Awaited<ReturnType<typeof getWorkout>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetWorkout<TData = Awaited<ReturnType<typeof getWorkout>>, TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | UnavailableResponse>>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getWorkout>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getWorkout>>,
+          TError,
+          Awaited<ReturnType<typeof getWorkout>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetWorkout<TData = Awaited<ReturnType<typeof getWorkout>>, TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | UnavailableResponse>>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getWorkout>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetWorkout<TData = Awaited<ReturnType<typeof getWorkout>>, TError = ErrorType<UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | UnavailableResponse>>(
+ id: number, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getWorkout>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetWorkoutQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateWorkoutUrl = (id: number,) => {
+
+
+
+
+  return `/api/workouts/${id}`
+}
+
+export const updateWorkout = async (id: number,
+    workoutUpdateInput: WorkoutUpdateInput, options?: Parameters<typeof customFetch>[1]): Promise<WorkoutDetail> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<WorkoutDetail>(getUpdateWorkoutUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(workoutUpdateInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateWorkoutMutationKey = () => ['updateWorkout'] as const;
+
+export const getUpdateWorkoutMutationOptions = <TError = ErrorType<InvalidInputResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | ConflictResponse | UnavailableResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateWorkout>>, TError,UpdateWorkoutMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateWorkout>>, TError,UpdateWorkoutMutationVariables, TContext> => {
+
+const mutationKey = getUpdateWorkoutMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateWorkout>>, UpdateWorkoutMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateWorkout(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateWorkoutMutationResult = NonNullable<Awaited<ReturnType<typeof updateWorkout>>>
+    export type UpdateWorkoutMutationBody = BodyType<WorkoutUpdateInput>
+    export type UpdateWorkoutMutationError = ErrorType<InvalidInputResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | ConflictResponse | UnavailableResponse>
+    export type UpdateWorkoutMutationVariables = {id: number;data: BodyType<WorkoutUpdateInput>}
+
+    export const useUpdateWorkout = <TError = ErrorType<InvalidInputResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | ConflictResponse | UnavailableResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateWorkout>>, TError,UpdateWorkoutMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateWorkout>>,
+        TError,
+        UpdateWorkoutMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateWorkoutMutationOptions(options), queryClient);
+    }
+
+export const getSetWorkoutArchiveUrl = (id: number,) => {
+
+
+
+
+  return `/api/workouts/${id}/archive`
+}
+
+export const setWorkoutArchive = async (id: number,
+    archivePreference: ArchivePreference, options?: Parameters<typeof customFetch>[1]): Promise<WorkoutDetail> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<WorkoutDetail>(getSetWorkoutArchiveUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(archivePreference)
+  }
+);}
+
+
+
+
+
+export const getSetWorkoutArchiveMutationKey = () => ['setWorkoutArchive'] as const;
+
+export const getSetWorkoutArchiveMutationOptions = <TError = ErrorType<InvalidInputResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | UnavailableResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setWorkoutArchive>>, TError,SetWorkoutArchiveMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setWorkoutArchive>>, TError,SetWorkoutArchiveMutationVariables, TContext> => {
+
+const mutationKey = getSetWorkoutArchiveMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setWorkoutArchive>>, SetWorkoutArchiveMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  setWorkoutArchive(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetWorkoutArchiveMutationResult = NonNullable<Awaited<ReturnType<typeof setWorkoutArchive>>>
+    export type SetWorkoutArchiveMutationBody = BodyType<ArchivePreference>
+    export type SetWorkoutArchiveMutationError = ErrorType<InvalidInputResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | UnavailableResponse>
+    export type SetWorkoutArchiveMutationVariables = {id: number;data: BodyType<ArchivePreference>}
+
+    export const useSetWorkoutArchive = <TError = ErrorType<InvalidInputResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | UnavailableResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setWorkoutArchive>>, TError,SetWorkoutArchiveMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof setWorkoutArchive>>,
+        TError,
+        SetWorkoutArchiveMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSetWorkoutArchiveMutationOptions(options), queryClient);
+    }
 
 export const getGetDashboardUrl = (params?: GetDashboardParams,) => {
   const normalizedParams = new URLSearchParams();
@@ -326,7 +874,7 @@ return customFetch<WorkoutSessionRecord>(getCreateSessionUrl(),
 
 export const getCreateSessionMutationKey = () => ['createSession'] as const;
 
-export const getCreateSessionMutationOptions = <TError = ErrorType<InvalidInputResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | UnavailableResponse>,
+export const getCreateSessionMutationOptions = <TError = ErrorType<InvalidInputResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | ConflictResponse | UnavailableResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSession>>, TError,CreateSessionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof createSession>>, TError,CreateSessionMutationVariables, TContext> => {
 
@@ -355,13 +903,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type CreateSessionMutationResult = NonNullable<Awaited<ReturnType<typeof createSession>>>
     export type CreateSessionMutationBody = BodyType<SessionInput>
-    export type CreateSessionMutationError = ErrorType<InvalidInputResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | UnavailableResponse>
+    export type CreateSessionMutationError = ErrorType<InvalidInputResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | ConflictResponse | UnavailableResponse>
     export type CreateSessionMutationVariables = {data: BodyType<SessionInput>}
 
     /**
  * @summary Save a dated session for the authenticated user
  */
-export const useCreateSession = <TError = ErrorType<InvalidInputResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | UnavailableResponse>,
+export const useCreateSession = <TError = ErrorType<InvalidInputResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | ConflictResponse | UnavailableResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSession>>, TError,CreateSessionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof createSession>>,
@@ -516,7 +1064,7 @@ return customFetch<WorkoutSessionRecord>(getUpdateSessionUrl(id),
 
 export const getUpdateSessionMutationKey = () => ['updateSession'] as const;
 
-export const getUpdateSessionMutationOptions = <TError = ErrorType<InvalidInputResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | UnavailableResponse>,
+export const getUpdateSessionMutationOptions = <TError = ErrorType<InvalidInputResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | ConflictResponse | UnavailableResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateSession>>, TError,UpdateSessionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof updateSession>>, TError,UpdateSessionMutationVariables, TContext> => {
 
@@ -545,13 +1093,13 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type UpdateSessionMutationResult = NonNullable<Awaited<ReturnType<typeof updateSession>>>
     export type UpdateSessionMutationBody = BodyType<SessionInput>
-    export type UpdateSessionMutationError = ErrorType<InvalidInputResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | UnavailableResponse>
+    export type UpdateSessionMutationError = ErrorType<InvalidInputResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | ConflictResponse | UnavailableResponse>
     export type UpdateSessionMutationVariables = {id: number;data: BodyType<SessionInput>}
 
     /**
  * @summary Replace editable session contents atomically, preserving its owner and version link
  */
-export const useUpdateSession = <TError = ErrorType<InvalidInputResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | UnavailableResponse>,
+export const useUpdateSession = <TError = ErrorType<InvalidInputResponse | UnauthorizedResponse | ForbiddenResponse | NotFoundResponse | ConflictResponse | UnavailableResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateSession>>, TError,UpdateSessionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof updateSession>>,

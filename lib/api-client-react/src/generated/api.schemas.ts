@@ -5,6 +5,77 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface ArchivePreference {
+  archived: boolean;
+}
+
+export interface WorkoutExerciseInput {
+  /**
+     * @minimum 1
+     * @maximum 2147483647
+     */
+  exerciseId?: number;
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  exerciseName: string;
+}
+
+export interface WorkoutInput {
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  name: string;
+  /**
+     * @minItems 1
+     * @maxItems 50
+     */
+  exercises: WorkoutExerciseInput[];
+}
+
+export type WorkoutUpdateInput = WorkoutInput & {
+  /**
+     * @minimum 1
+     * @maximum 2147483647
+     */
+  expectedVersionId: number;
+};
+
+export interface WorkoutVersionExercise {
+  id: number;
+  exerciseId: number;
+  exerciseName: string;
+  position: number;
+}
+
+export interface WorkoutVersionRecord {
+  id: number;
+  workoutId: number;
+  versionNumber: number;
+  workoutName: string;
+  savedAt: string;
+  exercises: WorkoutVersionExercise[];
+}
+
+export interface WorkoutDetail {
+  id: number;
+  name: string;
+  archived: boolean;
+  versions: WorkoutVersionRecord[];
+}
+
+export interface WorkoutSummary {
+  id: number;
+  name: string;
+  archived: boolean;
+  /** @nullable */
+  latestVersionId: number | null;
+  /** @nullable */
+  latestVersionNumber: number | null;
+}
+
 export interface WeeklySessions {
   weekStart: string;
   sessionCount: number;
@@ -96,6 +167,13 @@ export interface SessionExerciseInput {
 
 export interface SessionInput {
   /**
+     * Optional concrete version used to start a new session. An existing session's version link cannot be changed.
+     * @minimum 1
+     * @maximum 2147483647
+     * @nullable
+     */
+  workoutVersionId?: number | null;
+  /**
      * @minLength 1
      * @maxLength 120
      */
@@ -167,6 +245,11 @@ export interface HealthStatus {
 }
 
 /**
+ * Stale version or unavailable workout; draft has not been discarded
+ */
+export type ConflictResponse = ErrorResponse;
+
+/**
  * Verified email required
  */
 export type ForbiddenResponse = ErrorResponse;
@@ -190,6 +273,18 @@ export type NotFoundResponse = ErrorResponse;
  * Account or session service temporarily unavailable
  */
 export type UnavailableResponse = ErrorResponse;
+
+export type ListWorkoutsParams = {
+includeArchived?: ListWorkoutsIncludeArchived;
+};
+
+export type ListWorkoutsIncludeArchived = typeof ListWorkoutsIncludeArchived[keyof typeof ListWorkoutsIncludeArchived];
+
+
+export const ListWorkoutsIncludeArchived = {
+  true: 'true',
+  false: 'false',
+} as const;
 
 export type GetDashboardParams = {
 /**

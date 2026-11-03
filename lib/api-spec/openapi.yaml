@@ -11,6 +11,168 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /exercises:
+    get:
+      operationId: listExercises
+      tags: [workouts]
+      responses:
+        "200":
+          description: Active exercises owned by the signed-in account
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DashboardExercise"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+  /workouts:
+    get:
+      operationId: listWorkouts
+      tags: [workouts]
+      parameters:
+        - name: includeArchived
+          in: query
+          schema:
+            type: string
+            enum: ["true", "false"]
+      responses:
+        "200":
+          description: Owned reusable workouts, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WorkoutSummary"
+        "400":
+          $ref: "#/components/responses/InvalidInput"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+    post:
+      operationId: createWorkout
+      tags: [workouts]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkoutInput"
+      responses:
+        "201":
+          description: Workout and immutable version 1 saved atomically; no session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkoutDetail"
+        "400":
+          $ref: "#/components/responses/InvalidInput"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+  /workouts/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+    get:
+      operationId: getWorkout
+      tags: [workouts]
+      responses:
+        "200":
+          description: Owned workout with all immutable versions, newest first
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkoutDetail"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+    put:
+      operationId: updateWorkout
+      tags: [workouts]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkoutUpdateInput"
+      responses:
+        "200":
+          description: New immutable version saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkoutDetail"
+        "400":
+          $ref: "#/components/responses/InvalidInput"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+  /workouts/{id}/archive:
+    put:
+      operationId: setWorkoutArchive
+      tags: [workouts]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 2147483647
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ArchivePreference"
+      responses:
+        "200":
+          description: Archive preference saved without deleting history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkoutDetail"
+        "400":
+          $ref: "#/components/responses/InvalidInput"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/Unavailable"
   /dashboard:
     get:
       operationId: getDashboard
@@ -113,6 +275,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
         "503":
           $ref: "#/components/responses/Unavailable"
   /sessions/{id}:
@@ -167,6 +331,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
         "503":
           $ref: "#/components/responses/Unavailable"
     delete:
@@ -265,6 +431,12 @@ paths:
                 $ref: "#/components/schemas/HealthStatus"
 components:
   responses:
+    Conflict:
+      description: Stale version or unavailable workout; draft has not been discarded
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
     Forbidden:
       description: Verified email required
       content:
@@ -296,6 +468,106 @@ components:
           schema:
             $ref: "#/components/schemas/ErrorResponse"
   schemas:
+    ArchivePreference:
+      type: object
+      required: [archived]
+      properties:
+        archived:
+          type: boolean
+    WorkoutExerciseInput:
+      type: object
+      required: [exerciseName]
+      properties:
+        exerciseId:
+          type: integer
+          minimum: 1
+          maximum: 2147483647
+        exerciseName:
+          type: string
+          minLength: 1
+          maxLength: 120
+    WorkoutInput:
+      type: object
+      required: [name, exercises]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        exercises:
+          type: array
+          minItems: 1
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/WorkoutExerciseInput"
+    WorkoutUpdateInput:
+      allOf:
+        - $ref: "#/components/schemas/WorkoutInput"
+        - type: object
+          required: [expectedVersionId]
+          properties:
+            expectedVersionId:
+              type: integer
+              minimum: 1
+              maximum: 2147483647
+    WorkoutVersionRecord:
+      type: object
+      required: [id, workoutId, versionNumber, workoutName, savedAt, exercises]
+      properties:
+        id:
+          type: integer
+        workoutId:
+          type: integer
+        versionNumber:
+          type: integer
+        workoutName:
+          type: string
+        savedAt:
+          type: string
+        exercises:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkoutVersionExercise"
+    WorkoutVersionExercise:
+      type: object
+      required: [id, exerciseId, exerciseName, position]
+      properties:
+        id:
+          type: integer
+        exerciseId:
+          type: integer
+        exerciseName:
+          type: string
+        position:
+          type: integer
+    WorkoutDetail:
+      type: object
+      required: [id, name, archived, versions]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        archived:
+          type: boolean
+        versions:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkoutVersionRecord"
+    WorkoutSummary:
+      type: object
+      required: [id, name, archived, latestVersionId, latestVersionNumber]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        archived:
+          type: boolean
+        latestVersionId:
+          type: [integer, "null"]
+        latestVersionNumber:
+          type: [integer, "null"]
     DashboardData:
       type: object
       required: [totalSessions, totalSets, totalReps, weekly, weeklyWindowed, exercises, workouts, selectedExerciseId, selectedWorkoutKey, exerciseWeights, exerciseReps, workoutVolume]
@@ -439,6 +711,11 @@ components:
       type: object
       required: [workoutName, date, notes, exercises]
       properties:
+        workoutVersionId:
+          type: [integer, "null"]
+          minimum: 1
+          maximum: 2147483647
+          description: Optional concrete version used to start a new session. An existing session's version link cannot be changed.
         workoutName:
           type: string
           minLength: 1

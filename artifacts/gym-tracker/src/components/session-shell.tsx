@@ -19,6 +19,7 @@ export function AppNav({ busy, confirmLogout }: NavGuard) {
   const items = [
     { href: '/dashboard', label: 'Dashboard', testid: 'link-nav-dashboard', active: location === '/dashboard' },
     { href: '/sessions', label: 'Sessions', testid: 'link-nav-sessions', active: location.startsWith('/sessions') },
+    { href: '/workouts', label: 'Workouts', testid: 'link-nav-workouts', active: location.startsWith('/workouts') },
     { href: '/user-portal', label: 'Account', testid: 'link-nav-account', active: location === '/user-portal' },
   ];
 
@@ -40,7 +41,7 @@ export function AppNav({ busy, confirmLogout }: NavGuard) {
               key={it.href}
               href={it.href}
               aria-current={it.active ? 'page' : undefined}
-              className={`inline-flex h-10 items-center rounded-lg px-2.5 text-sm sm:px-3.5 font-bold transition-colors ${it.active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+              className={`inline-flex h-10 items-center rounded-lg px-2 text-sm sm:px-3.5 font-bold transition-colors ${it.active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
               data-testid={it.testid}
             >
               {it.label}
