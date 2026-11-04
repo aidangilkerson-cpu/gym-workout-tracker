@@ -15,6 +15,12 @@ export type SessionDraft = { workoutName: string; date: string; notes: string; e
 
 export const MAX_SETS = 100;
 let keySeq = 0;
+/** Recovered local keys must not collide with newly added exercise/set rows. */
+export function reserveDraftKeys(draft: SessionDraft) {
+  for (const exercise of draft.exercises) {
+    keySeq = Math.max(keySeq, exercise.key, ...exercise.sets.map(set => set.key));
+  }
+}
 export const createSetDraft = (reps = ''): SetDraft => ({ key: ++keySeq, reps });
 export const blankExercise = (): ExerciseDraft => ({
   key: ++keySeq, exerciseName: '', notes: '', weightLb: '', sets: Array.from({ length: 3 }, () => createSetDraft()),

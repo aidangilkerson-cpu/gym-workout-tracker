@@ -3,3 +3,4 @@
 - [Browser test environment](browser-test-environment.md) — confirm the actual origin after programmatic Clerk login; a published-site request may redirect to Preview.
 - [Privacy mutation safety](privacy-mutation-safety.md) — rollbacks do not isolate reads; intentional ownership breaks need private tables and an isolated source copy.
 - [Exercise note scope](exercise-note-scope.md) — the user wants an exercise's editable previous note to carry across all their workouts, not stay within one preset.
+- [Between-set logging](between-set-logging.md) — users lock their phones during sets; account retry must not erase the in-progress workout.

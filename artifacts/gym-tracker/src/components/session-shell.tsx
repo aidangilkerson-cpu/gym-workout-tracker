@@ -5,6 +5,7 @@ import { Link, useLocation } from 'wouter';
 import { useGetCurrentUser, getGetCurrentUserQueryKey } from '@workspace/api-client-react';
 import { LogOut, RotateCw } from 'lucide-react';
 import { BrandMark } from '@/components/brand';
+import { clearSessionRecovery } from '@/lib/session-recovery';
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
 
@@ -27,6 +28,7 @@ export function AppNav({ busy, confirmLogout }: NavGuard) {
     if (busy) return;
     if (confirmLogout && !confirmLogout()) return;
     setSigningOut(true);
+    clearSessionRecovery();
     queryClient.clear();
     await signOut({ redirectUrl: basePath || '/' });
   };
@@ -67,11 +69,13 @@ export function AppNav({ busy, confirmLogout }: NavGuard) {
 /** Waits for the account to be provisioned/verified before rendering session data. */
 export function AccountGate({ children, fallbackWrap }: { children: ReactNode; fallbackWrap?: (node: ReactNode) => ReactNode }) {
   const wrap = (n: ReactNode) => <>{fallbackWrap ? fallbackWrap(n) : n}</>;
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn, userId, sessionId } = useAuth();
   const me = useGetCurrentUser({
     query: { queryKey: getGetCurrentUserQueryKey(), enabled: isLoaded && !!isSignedIn, retry: false },
   });
 
+  // Never allow cached account data to open the gate for an unconfirmed identity.
+  if (!isLoaded || !isSignedIn || !userId || !sessionId) return wrap(<SkeletonBlock testid="status-account-loading" />);
   if (me.isError) {
     return wrap(
       <div className="rounded-3xl border border-border bg-card p-6 md:p-9" data-testid="status-account-error">
@@ -90,8 +94,8 @@ export function AccountGate({ children, fallbackWrap }: { children: ReactNode; f
       </div>
     );
   }
-  if (!me.isSuccess || !me.data) return wrap(<SkeletonBlock testid="status-account-loading" />);
-  return <>{children}</>;
+  if (!me.isSuccess || !me.data || me.data.authId !== userId) return wrap(<SkeletonBlock testid="status-account-loading" />);
+  return <div key={`${userId}:${sessionId}`}>{children}</div>;
 }
 
 export function SkeletonBlock({ testid, rows = 3 }: { testid: string; rows?: number }) {

@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useAuth } from '@clerk/react';
+import { useLocation, useSearch } from 'wouter';
 import type { SessionInput, WorkoutSessionRecord, WorkoutVersionRecord } from '@workspace/api-client-react';
 import { Plus, Trash2 } from 'lucide-react';
 import { useUnsavedGuard } from '@/hooks/use-unsaved-guard';
@@ -7,7 +9,8 @@ import { WeightInput } from '@/components/weight-input';
 import { PageFrame, errorMessage, errorStatus, formatDate } from '@/components/session-shell';
 import { SetEditor, refBadgeCls } from '@/components/set-editor';
 import type { SessionSeed } from '@/lib/session-seed';
-import { blankExercise, createSessionDraft, draftFromRecord, draftSnapshot, draftToInput, appendDraftSet, removeDraftSet, updateDraftSet, MAX_SETS, type SessionDraft as Draft, type ExerciseDraft } from '@/lib/session-draft';
+import { blankExercise, createSessionDraft, draftFromRecord, draftSnapshot, draftToInput, appendDraftSet, removeDraftSet, updateDraftSet, reserveDraftKeys, MAX_SETS, type SessionDraft as Draft, type ExerciseDraft } from '@/lib/session-draft';
+import { recoveryKey, readCheckpoint, writeCheckpoint, clearCheckpoint, type SessionCheckpoint } from '@/lib/session-recovery';
 import { validateSessionDraft, sessionErrorsFromResponse, type FieldErrors } from '@/lib/session-validation';
 import { latestExerciseNotes, withPreviousNote, exerciseIdForName } from '@/lib/exercise-notes';
 
@@ -31,17 +34,25 @@ type Props = {
 };
 
 export function SessionForm({ mode, initial, templateVersion, seed, noteHistory = [], exerciseLibrary = [], cancelTo, onSubmit }: Props) {
+  const { userId, sessionId } = useAuth();
+  const [location] = useLocation();
+  const search = useSearch();
+  // AccountGate has already confirmed identity before this form may mount.
+  const checkpointId = recoveryKey(userId!, sessionId!, `${mode}:${location}?${new URLSearchParams(search).toString()}`);
+  const recovered = useRef(readCheckpoint(checkpointId)).current;
   const previousNotes = useRef(latestExerciseNotes(noteHistory)).current;
   const library = useRef(exerciseLibrary).current;
   // Keep provenance and the seed together, even if a parent query refreshes.
-  const pinnedTemplate = useRef(templateVersion).current;
+  const pinnedTemplate = useRef(recovered ? recovered.template : templateVersion).current;
   const pinnedSeed = useRef(mode === 'create' ? seed : undefined).current;
-  const reference = pinnedSeed?.reference;
+  const reference = recovered ? recovered.reference : pinnedSeed?.reference;
   const refLabel = reference?.kind === 'repeat' ? 'Copied' : 'Last time';
   const refDate = reference ? formatDate(reference.date) : '';
-  const sourceVersionId = pinnedSeed && pinnedSeed.workoutVersionId !== undefined ? pinnedSeed.workoutVersionId : pinnedTemplate?.id;
+  const sourceVersionId = recovered ? recovered.sourceVersionId : pinnedSeed && pinnedSeed.workoutVersionId !== undefined ? pinnedSeed.workoutVersionId : pinnedTemplate?.id;
   // Touched tracking by local keys (not value comparison); kept out of the payload/dirty snapshot.
-  const [touched, setTouched] = useState<{ weight: Set<number>; reps: Set<number>; count: Set<number> }>(() => ({ weight: new Set(), reps: new Set(), count: new Set() }));
+  const [touched, setTouched] = useState<{ weight: Set<number>; reps: Set<number>; count: Set<number> }>(() => ({
+    weight: new Set(recovered?.touched.weight), reps: new Set(recovered?.touched.reps), count: new Set(recovered?.touched.count),
+  }));
   const touch = (kind: 'weight' | 'reps' | 'count', key: number) => setTouched((t) => {
     if (t[kind].has(key)) return t;
     const next = new Set(t[kind]); next.add(key);
@@ -54,19 +65,45 @@ export function SessionForm({ mode, initial, templateVersion, seed, noteHistory 
   }));
   const initialDraft = useMemo<Draft>(
     () => {
+      if (recovered) {
+        reserveDraftKeys(recovered.draft);
+        return recovered.draft;
+      }
       const draft = initial ? draftFromRecord(initial) : pinnedSeed?.draft ?? createSessionDraft(pinnedTemplate);
       return mode === 'edit' ? draft : { ...draft, exercises: draft.exercises.map(ex => withPreviousNote(ex, previousNotes)) };
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
-  const baseline = useRef(draftSnapshot(initialDraft));
+  const baseline = useRef(recovered?.baseline ?? draftSnapshot(initialDraft));
   const [draft, setDraft] = useState<Draft>(initialDraft);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [serverErrors, setServerErrors] = useState<FieldErrors>({});
   const [focusRequest, setFocusRequest] = useState(0);
+  const [recoveryAvailable, setRecoveryAvailable] = useState(true);
+  const recoveryActive = useRef(true);
+  const checkpoint = useRef<SessionCheckpoint>(null!);
+  checkpoint.current = {
+    version: 1, draft, baseline: baseline.current, template: pinnedTemplate, sourceVersionId, reference,
+    touched: { weight: [...touched.weight], reps: [...touched.reps], count: [...touched.count] },
+  };
+  const forgetDraft = () => { recoveryActive.current = false; clearCheckpoint(checkpointId); };
+  useEffect(() => {
+    if (recoveryActive.current) setRecoveryAvailable(writeCheckpoint(checkpointId, checkpoint.current));
+  }, [checkpointId, draft, touched]);
+  useEffect(() => {
+    const flush = () => {
+      if (recoveryActive.current) writeCheckpoint(checkpointId, checkpoint.current);
+    };
+    window.addEventListener('pagehide', flush);
+    document.addEventListener('visibilitychange', flush);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      document.removeEventListener('visibilitychange', flush);
+    };
+  }, [checkpointId]);
   const formRef = useRef<HTMLFormElement>(null);
   const errors = { ...(submitted ? validateSessionDraft(draft) : {}), ...serverErrors };
   const hasErrors = Object.keys(errors).length > 0;
@@ -83,10 +120,14 @@ export function SessionForm({ mode, initial, templateVersion, seed, noteHistory 
   }, [focusRequest]);
   const dirty = draftSnapshot(draft) !== baseline.current;
   const guard = useUnsavedGuard(dirty, saving);
+  const leave = (to: string) => {
+    if (!dirty && !saving) forgetDraft();
+    guard.leave(to);
+  };
   const confirmLogout = () => {
-    if (!dirty) return true;
+    if (!dirty) { forgetDraft(); return true; }
     const ok = window.confirm('You have unsaved changes to this session. Log out and discard them?');
-    if (ok) guard.release();
+    if (ok) { forgetDraft(); guard.release(); }
     return ok;
   };
 
@@ -121,6 +162,7 @@ export function SessionForm({ mode, initial, templateVersion, seed, noteHistory 
         ...(mode === 'create' && sourceVersionId !== undefined ? { workoutVersionId: sourceVersionId } : {}),
       });
       baseline.current = draftSnapshot(draft);
+      forgetDraft();
       guard.go(`/sessions/${saved.id}`);
     } catch (err) {
       submitting.current = false;
@@ -142,11 +184,13 @@ export function SessionForm({ mode, initial, templateVersion, seed, noteHistory 
   };
 
   return (
-    <PageFrame onNavigate={guard.leave} busy={saving} confirmLogout={confirmLogout}>
+    <PageFrame onNavigate={leave} busy={saving} confirmLogout={confirmLogout}>
       <p className="rise font-mono text-xs uppercase tracking-[0.3em] text-primary">{mode === 'create' ? 'New entry' : 'Editing entry'}</p>
       <h1 className="rise mt-3 text-4xl font-black uppercase leading-[0.9] md:text-6xl" style={{ animationDelay: '60ms' }}>
         {mode === 'create' ? 'Log a session.' : 'Fix the record.'}
       </h1>
+      {recovered && <p className="mt-4 text-sm text-primary" role="status" data-testid="status-draft-restored">Your in-progress workout was restored. Nothing new has been logged until you save.</p>}
+      {!recoveryAvailable && <p className="mt-4 text-sm text-destructive" role="alert" data-testid="status-draft-storage-error">This browser cannot keep a reload recovery copy. Your entries are retained during account retry, but keep this tab open until you save.</p>}
       {reference && (
         <div className="mt-4 rounded-xl border border-primary/40 bg-primary/5 p-4 text-sm" data-testid="text-session-reference">
           {reference.kind === 'repeat' ? (
@@ -320,7 +364,7 @@ export function SessionForm({ mode, initial, templateVersion, seed, noteHistory 
         <div className="sticky bottom-0 -mx-5 flex gap-3 border-t border-border bg-background/95 px-5 py-4 backdrop-blur md:static md:mx-0 md:border-0 md:bg-transparent md:px-0">
           <button
             type="button"
-            onClick={() => guard.leave(cancelTo)}
+            onClick={() => leave(cancelTo)}
             disabled={saving}
             className="h-14 flex-1 rounded-2xl border border-border bg-card font-semibold hover:bg-secondary disabled:opacity-60 md:flex-none md:px-8"
             data-testid="button-cancel"
@@ -344,7 +388,7 @@ export function SessionForm({ mode, initial, templateVersion, seed, noteHistory 
         description="You have unsaved edits to this session. Leaving now throws them away."
         confirmLabel="Discard"
         cancelLabel="Keep editing"
-        onConfirm={guard.confirmDiscard}
+        onConfirm={() => { forgetDraft(); guard.confirmDiscard(); }}
         onCancel={guard.cancelDiscard}
         testid="discard"
       />
