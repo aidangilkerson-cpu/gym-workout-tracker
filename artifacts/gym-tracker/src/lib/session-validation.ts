@@ -2,6 +2,7 @@ export type FieldErrors = Record<string, string>;
 
 type ExerciseFields = {
   exerciseName: string;
+  notes?: string;
   weightLb: string;
   sets: { reps: string }[];
 };
@@ -36,6 +37,7 @@ export function validateSessionDraft(draft: SessionFields): FieldErrors {
 
   draft.exercises.forEach((exercise, index) => {
     const path = `exercises.${index}`;
+    if ((exercise.notes?.length ?? 0) > 5000) errors[`${path}.notes`] = 'Keep the exercise note to 5,000 characters or fewer.';
     if (!exercise.exerciseName.trim()) errors[`${path}.exerciseName`] = 'Enter an exercise name.';
     else if (exercise.exerciseName.length > 120) errors[`${path}.exerciseName`] = 'Use 120 characters or fewer for the exercise name.';
 
@@ -71,7 +73,7 @@ export function sessionErrorsFromResponse(error: unknown, setCounts: number[]): 
       errors[path] = message;
       continue;
     }
-    const match = /^exercises\.(\d+)(?:\.(exerciseName|exerciseId|weightLb|sets)(?:\.(\d+)(?:\.reps)?)?)?$/.exec(path);
+    const match = /^exercises\.(\d+)(?:\.(exerciseName|exerciseId|notes|weightLb|sets)(?:\.(\d+)(?:\.reps)?)?)?$/.exec(path);
     if (!match || Number(match[1]) >= setCounts.length) continue;
     const exIndex = Number(match[1]);
     if (match[3] !== undefined) {

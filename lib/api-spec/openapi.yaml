@@ -696,6 +696,10 @@ components:
           type: string
           minLength: 1
           maxLength: 120
+        notes:
+          type: [string, "null"]
+          maxLength: 5000
+          description: Exercise-specific note. Omission preserves the existing note when editing; null or blank explicitly clears it.
         weightLb:
           type: number
           minimum: 0
@@ -744,7 +748,7 @@ components:
           type: integer
     SessionExerciseRecord:
       type: object
-      required: [id, exerciseId, exerciseName, weightLb, position, sets]
+      required: [id, exerciseId, exerciseName, notes, weightLb, position, sets]
       properties:
         id:
           type: integer
@@ -752,6 +756,8 @@ components:
           type: integer
         exerciseName:
           type: string
+        notes:
+          type: [string, "null"]
         weightLb:
           type: number
         position:

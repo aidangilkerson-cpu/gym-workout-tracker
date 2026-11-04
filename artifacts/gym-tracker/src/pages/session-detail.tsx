@@ -83,6 +83,10 @@ function Detail({ id, onBusy, go }: { id: number; onBusy: (b: boolean) => void; 
                 <h3 className="text-xl font-extrabold"><span className="mr-2 font-mono text-xs text-primary">{String(i + 1).padStart(2, '0')}</span><span data-testid={`text-exercise-name-${ex.id}`}>{ex.exerciseName}</span></h3>
                 <p className="font-mono text-sm" data-testid={`text-exercise-weight-${ex.id}`}><span className="text-2xl font-bold text-primary">{ex.weightLb}</span> lb</p>
               </div>
+              {ex.notes && <div className="mt-4 border-t border-border pt-3">
+                <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Exercise note</p>
+                <p className="mt-1 whitespace-pre-wrap break-words text-sm" data-testid={`text-exercise-notes-${ex.id}`}>{ex.notes}</p>
+              </div>}
               <div className="mt-4 flex flex-wrap gap-2" data-testid={`list-sets-${ex.id}`}>
                 {sets.map((set) => (
                   <span key={set.id} className="inline-flex flex-col items-center rounded-xl border border-border bg-secondary px-3 py-2 font-mono">

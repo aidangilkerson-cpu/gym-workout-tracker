@@ -16,6 +16,12 @@ export interface SessionExerciseInput {
      */
   exerciseName: string;
   /**
+     * Exercise-specific note. Omission preserves the existing note when editing; null or blank explicitly clears it.
+     * @maxLength 5000
+     * @nullable
+     */
+  notes?: string | null;
+  /**
      * @minimum 0
      * @maximum 99999999.99
      */

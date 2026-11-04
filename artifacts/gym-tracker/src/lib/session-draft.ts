@@ -5,6 +5,9 @@ export type ExerciseDraft = {
   key: number;
   exerciseId?: number;
   exerciseName: string;
+  notes: string;
+  noteSource?: { date: string; workoutName: string };
+  noteEdited?: boolean;
   weightLb: string;
   sets: SetDraft[];
 };
@@ -14,7 +17,7 @@ export const MAX_SETS = 100;
 let keySeq = 0;
 export const createSetDraft = (reps = ''): SetDraft => ({ key: ++keySeq, reps });
 export const blankExercise = (): ExerciseDraft => ({
-  key: ++keySeq, exerciseName: '', weightLb: '', sets: Array.from({ length: 3 }, () => createSetDraft()),
+  key: ++keySeq, exerciseName: '', notes: '', weightLb: '', sets: Array.from({ length: 3 }, () => createSetDraft()),
 });
 
 export function createSessionDraft(template?: WorkoutVersionRecord, now = new Date()): SessionDraft {
@@ -34,6 +37,7 @@ export function draftFromRecord(record: WorkoutSessionRecord): SessionDraft {
     workoutName: record.workoutName, date: record.date, notes: record.notes ?? '',
     exercises: [...record.exercises].sort((a, b) => a.position - b.position).map(ex => ({
       key: ++keySeq, exerciseId: ex.exerciseId, exerciseName: ex.exerciseName, weightLb: String(ex.weightLb),
+      notes: ex.notes ?? '',
       sets: [...ex.sets].sort((a, b) => a.setNumber - b.setNumber).map(set => createSetDraft(String(set.reps))),
     })),
   };
@@ -50,7 +54,7 @@ export function updateDraftSet(exercise: ExerciseDraft, key: number, reps: strin
 }
 export function draftSnapshot(draft: SessionDraft): string {
   return JSON.stringify({
-    ...draft, exercises: draft.exercises.map(({ key: _key, sets, ...ex }) => ({
+    ...draft, exercises: draft.exercises.map(({ key: _key, noteSource: _source, noteEdited: _edited, sets, ...ex }) => ({
       ...ex, sets: sets.map(({ key: _setKey, ...set }) => set),
     })),
   });
@@ -68,6 +72,7 @@ export function draftToInput(draft: SessionDraft): SessionInput {
     exercises: draft.exercises.map(ex => ({
       ...(ex.exerciseId !== undefined ? { exerciseId: ex.exerciseId } : {}),
       exerciseName: ex.exerciseName.trim(), weightLb: enteredNumber(ex.weightLb),
+      notes: ex.notes.trim() ? ex.notes : null,
       sets: ex.sets.map(set => ({ reps: enteredNumber(set.reps) })),
     })),
   };

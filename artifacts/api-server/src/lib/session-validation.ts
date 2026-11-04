@@ -20,6 +20,7 @@ export function sessionFieldErrors(body: unknown, issues: readonly Issue[]): Rec
     else if (path === "notes") errors[path] = "Keep notes to 5,000 characters or fewer, or leave them blank.";
     else if (path === "exercises") errors[path] = "Include between 1 and 50 exercises.";
     else if (/^exercises\.\d+\.exerciseName$/.test(path)) errors[path] = "Enter an exercise name using 1–120 characters.";
+    else if (/^exercises\.\d+\.notes$/.test(path)) errors[path] = "Keep the exercise note to 5,000 characters or fewer, or leave it blank.";
     else if (/^exercises\.\d+\.exerciseId$/.test(path)) errors[path] = "Choose a valid exercise.";
     else if (/^exercises\.\d+\.weightLb$/.test(path)) errors[path] = "Enter a weight from 0 to 99,999,999.99 lb, with no more than two decimal places.";
     else if (/^exercises\.\d+\.sets$/.test(path)) errors[path] = "Use between 1 and 100 sets.";
