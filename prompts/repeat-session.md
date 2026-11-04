@@ -88,3 +88,30 @@ Original `PLAN.md` and `prompts/plan.md` remain unchanged. The two formal assign
 ## Next workflow gate
 
 Stop for separate approval before opening this feature's PR. Do not merge, publish, or begin either formal assignment test during this build step.
+
+## Recovered Feature 8 clarification
+
+Evidence supplement added during Reflection 1 documentation, after Feature 10 was merged. The student supplied the earlier agent reply from the chat. It is preserved below as recovered evidence, not presented as a contemporaneously saved log entry. The initiating student prompt and follow-up are available in the project conversation. This supplement leaves the original development record above intact.
+
+**Student prompt, from the project conversation:**
+
+> I have a question first? the way this feature works does it automatically populate the weight used and the reps used previously for that workout previusly when i hit start workout and select a preset workout i have already made and previously completed?
+
+**Agent reply, recovered and supplied by the student:**
+
+> **Not currently.** Starting a saved workout fills in:
+>
+> - The workout name and ordered exercise list.
+> - **Weight:** blank.
+> - **Reps:** blank.
+> - **Sets:** defaults to 3—not your previous set count.
+>
+> It does **not** pull numbers from your last completed session.
+>
+> That behavior could fit **feature 10, “Repeat a previous session,”** which we haven’t built yet. We can plan for starting a preset to offer your previous numbers as editable starting values, without logging anything until you save. That would keep us in assignment order.
+
+**Student follow-up, from the project conversation and already recorded in the requirement excerpts:**
+
+> yes plan that behavior and make it so it notes that is what you did last time until you fill in the new numbers
+
+**Interpretation confirmed by the student during reflection review:** the original plan did not specify exactly what they had in mind; previous-result suggestions are core to their intended use. Clarifying the omission cost additional time and effort. No duration, monetary cost, or unreported application failure is inferred.
