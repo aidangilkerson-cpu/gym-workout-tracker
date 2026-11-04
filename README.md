@@ -1,196 +1,175 @@
 # LiftLedgr — Gym Workout Tracker
 
-Solo app assignment repository.
+LiftLedgr is a personal training journal for creating reusable gym workouts and recording progress without losing earlier results when a routine changes.
 
-The student confirmed instructor approval for a one-time repository initialization
-exception. Planning and feature work follow linked Issues, branches, and pull requests.
+**Live app:** [liftledgr-aidangilkerson.replit.app](https://liftledgr-aidangilkerson.replit.app)
 
-## Current feature
+Sign up or sign in to use the tracker. Each account has its own workout history. This project was built for a solo school assignment through linked GitHub Issues, branches, development logs, and student-reviewed pull requests.
 
-Features 1–5 are merged and published: Clerk accounts, the nine-table workout
-data model, saved workout sessions, friendly validation, and stars.
+## What it does
 
-**Feature 3: session create / read / update / delete.**
-Signed-in users can save dated sessions with exercise entries, read
-their history and session details, edit a session, and delete it after
-confirmation. A session exercise uses one weight in pounds and, for this basic
-editor, a set count with the same reps for every set.
+1. **Accounts:** Clerk-powered signup, login, and logout, with email/password and Google sign-in.
+2. **Persistent data:** Nine related PostgreSQL tables keep accounts, templates, sessions, exercises, sets, and favorites organized.
+3. **Session history:** Create, view, edit, and delete dated workout sessions, with confirmation before deletion.
+4. **Validation:** Friendly field errors and first-error focus help correct invalid input without losing the draft.
+5. **Stars:** Favorite your own sessions and switch to a starred-only view.
+6. **Search and sort:** Find sessions by workout name and order them newest or oldest first; filters persist in the URL.
+7. **Dashboard:** See total sessions, sets, and reps; weekly activity; exercise weight/reps over time; and workout volume over time.
+8. **Reusable workouts:** Prepare a named exercise list without logging a session. Editing saves a new dated version while preserving earlier lists and completed results.
+9. **Per-set reps:** Add/remove sets and record different reps for each set, using one shared weight in pounds per exercise. Weight arrows move by 1 lb while typed decimal weights remain supported.
+10. **Repeat and previous results:** Copy a session into a new independent draft, or start a preset with the last session's matching results labeled “Last time” until edited.
 
-The published weight-arrow fix uses **1 lb per click**, preserving typed
-decimal weights. Keyboard ArrowUp/ArrowDown use the same increment.
+**Additional feature:** editable exercise notes carry across all of your workouts by exercise identity. A draft offers the latest saved note, including a deliberately cleared note; older sessions retain their own notes. Whole-session notes remain separate.
 
-The published **feature 4: Validation** includes inline
-field-specific errors in create/edit forms, accessible first-error focus,
-safe server validation feedback, and draft retention after failed saves.
-Invalid submissions do not overwrite existing saved sessions.
-Routine checks and one signed-in mobile error/retry journey passed, including
-retained drafts on HTTP 503, mapped server field errors, and successful
-corrected saves. See `prompts/validation.md` for actual verification details.
+Workout volume is the sum of weight × reps, not a direct measurement of strength. Changing exercises affects comparisons. Weekly activity displays at most the latest 104 weeks; summary totals remain all-time.
 
-Published **feature 5: Stars** lets users star or unstar an
-owned session from its list card or detail screen. Choose **Starred only** to
-view favorites or **All sessions** to return. The selected view stays in the
-URL on reload. Stars persist in the existing shared junction table; removing
-a star never deletes the session. Failed saves show an unconfirmed-change
-message and permit retry without falsely changing the displayed saved state.
-See `prompts/stars.md` for development and verification details.
+## Typical use
 
-This branch implements **feature 6: Find things (search/sort)** in development.
-Search workout names case-insensitively and choose newest or oldest date order.
-Search, date order, and the stars view work together and persist in the URL.
-Search matches literal text, including `%`, `_`, and backslashes, not SQL
-patterns. Clear search preserves date order and the selected view. A no-matches
-state is distinct from an empty session history or favorites list.
-This feature is not published until its separately approved PR is reviewed
-and merged. See `prompts/find-things.md`.
+1. Create an account or sign in.
+2. Open **Workouts** to create a reusable routine, or **Sessions** to log an ad-hoc workout.
+3. Start a routine, enter its exercise weights and each set's reps, optionally edit notes, and save the session.
+4. Return to session history to edit, star, repeat, search, or delete a session.
+5. Open **Dashboard** and select an exercise or workout to inspect its progress.
 
-The account screen links to `/sessions`; create, detail, and edit routes are
-`/sessions/new`, `/sessions/:id`, and `/sessions/:id/edit`.
-Advanced individually editable per-set reps remain feature 9. If existing saved
-reps differ, this editor preserves them unless sets/reps are explicitly changed.
-Dashboards, reusable templates
-with version history, and repeat-session behavior remain their separate later
-features. No later feature is claimed as complete.
+Saving a template does not record completed training. Starting or repeating a workout creates a draft; only saving the session writes the new training record.
 
-## Data model
+## Tools used
 
-- `users` owns exercises, workout templates, and sessions.
-- `workouts` has dated `workout_versions`; each version has an ordered list in
-  `workout_version_exercises`.
-- `sessions` optionally links to a workout version. `session_exercises` stores
-  exercise-name snapshots and one decimal weight in pounds; `sets` stores each
-  set's number and reps.
-- `stars` is the single user/session junction table. A composite foreign key
-  also prevents starring a session belonging to a different user.
-- Stable exercise IDs and saved workout/exercise names support historical
-  results across future template edits. Referenced exercises, workouts, and
-  versions cannot be deleted accidentally through parent deletion. Library
-  entries can be archived instead.
-- Explicitly deleting a session cascades only to its session exercises, sets,
-  and stars. It does not delete its template versions or exercise-library rows.
+| Area | Tools |
+|---|---|
+| Interface | React, TypeScript, Vite, Tailwind CSS, Wouter, TanStack Query |
+| Charts | Recharts |
+| Server | Express, Node.js, TypeScript |
+| Data | PostgreSQL, Drizzle ORM and Drizzle Kit |
+| Validation and API contract | Zod, OpenAPI, Orval-generated clients |
+| Authentication | Replit-managed Clerk; no application password storage |
+| Tests | Vitest, Supertest, Node's built-in test runner; automated signed-in browser checks during development |
+| Development and hosting | Replit Agent, Replit hosting, pnpm workspaces, GitHub Issues/branches/PRs |
 
-These tables provide the structure for later features, not those features'
-behavior. Appending new template versions rather than editing old versions will
-be implemented in the template feature. Foreign keys are not API authorization:
-session handlers derive the account from Clerk, scope reads/changes to that
-account, and validate any supplied exercise identity. New sessions cannot accept
-a client-assigned workout-version link; edits preserve an existing link.
-Future template handlers must also check ownership of linked versions.
+## Project structure
 
-## Session API and verification
-
-`GET /api/sessions`, `POST /api/sessions`, and
-`GET / PUT / DELETE /api/sessions/:id` require a verified signed-in account.
-Feature 5 adds `PUT /api/sessions/:id/star` with a required boolean `starred`,
-and `GET /api/sessions?starredOnly=true` for owned favorites. Omitting the
-filter or using `starredOnly=false` lists all owned sessions. Responses include
-the server-derived `starred` state; identity is never taken from request input.
-Repeated star or unstar requests are idempotent and cannot create duplicates.
-Feature 6 extends the owned session list with optional `q` (up to 120
-characters, trimmed literal workout-name substring) and `sort=newest|oldest`.
-Newest is the default. Equal dates use session ID in the same direction.
-Repeated/nested filters or invalid supported values return 400.
-Saves atomically update session metadata, exercise snapshots, and sets.
-A failed replacement rolls back, retaining the old saved session. Editing one
-session never edits another session, its template versions, or the library's
-exercise names. Deleting one session does not delete its referenced history.
-Responses containing session or account data are marked `no-store`.
-
-Run the real-development-database API tests:
-
-```sh
-pnpm --filter @workspace/api-server run test
-pnpm --filter @workspace/gym-tracker exec node --test test/weight-step.test.mjs test/session-validation.test.mjs test/session-filters.test.mjs
-pnpm run typecheck
-```
-
-The sixteen routine Vitest + Supertest tests use real PostgreSQL; only provider identity is
-substituted within the test process. Each fixture rolls back, even on failure.
-There is no test-login header or authentication bypass in the running app.
-Never run fixture tests against production.
-
-The twenty-four focused client checks use Node's built-in test runner and do not
-access the database. Nine cover weight-arrow movement and nine cover draft
-validation and API error mapping. These are routine verification, not the
-assignment's two separate required tests.
-
-These are routine feature-safety checks, not the two separate assignment test
-deliverables. Both required tests come at the very end, after all 10 app features
-are complete; do not start their Issues, branches, or dedicated test work earlier.
-The required data-isolation scenario and dashboard-calculation
-scenario will each be added through their own Issue, branch, and PR, with the
-required explanation, failing/passing screenshots, and what-would-break-it
-sentence. No assignment Test A evidence needs to be attached to the feature 3 PR.
-See `prompts/crud.md` for the development log and the student-caught correction
-that separated the prematurely bundled assignment test from this feature.
-
-## Tools and structure
-
-- React, Vite, TypeScript, and Tailwind: `artifacts/gym-tracker`
-- Express and Clerk authentication middleware: `artifacts/api-server`
-- PostgreSQL and Drizzle: `lib/db`
-- OpenAPI contract and generated clients: `lib/api-spec`, `lib/api-client-react`,
-  and `lib/api-zod`
-- Original plan: `PLAN.md`
-- Development notes and evidence: `prompts/`
+- `artifacts/gym-tracker/` — React web interface.
+- `artifacts/api-server/` — Express API, authorization, session/template operations, and dashboard calculations.
+- `lib/db/` — database models, schema tooling, and schema tests.
+- `lib/api-spec/` — OpenAPI contract and client generation.
+- `lib/api-client-react/`, `lib/api-zod/` — generated API hooks and validation types.
+- `artifacts/mockup-sandbox/` — separate design-preview sandbox; not needed to use the tracker.
+- [`PLAN.md`](PLAN.md) — original plan and completed Plan vs. Reality reflection.
+- [`schema.md`](schema.md) — all nine tables, their columns/relationships, and comparison with the planned model.
+- [`prompts/`](prompts/) — structured development logs, corrections, and verification evidence.
 
 ## Run in development
 
-Use Node.js 24 and pnpm 10. Install with `pnpm install --frozen-lockfile`.
-Provide `DATABASE_URL`, `CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY`, and
-`VITE_CLERK_PUBLISHABLE_KEY` through secure environment configuration, never
-committed files. Replit provisions these for this project.
+### 1. Prerequisites and installation
 
-Apply the development schema with `pnpm --filter @workspace/db run push`.
-In Replit, run the managed API Server and Gym Workout Tracker workflows; they
-supply the required ports and routing.
+Use **Node.js 24**, **pnpm 10**, a development PostgreSQL database, and configured Clerk authentication. From the repository root:
 
-For local development outside Replit, run the API with `PORT=8080` and the web
-package with `PORT=5173 BASE_PATH=/`, with a same-origin reverse proxy routing
-`/api` to Express and other paths to Vite. Cookie-based authentication requires
-the UI and API to share an origin. Configure the development host with your
-Clerk instance.
+```sh
+pnpm install --frozen-lockfile
+```
 
-Run `pnpm run typecheck` for the full TypeScript check. After changing the API
-contract, run `pnpm --filter @workspace/api-spec run codegen`.
+Use pnpm, not npm or Yarn; the repository's install script enforces this.
 
-### Verify the development data model
+### 2. Configuration
 
-After applying the schema, run `pnpm --filter @workspace/db run test`.
-The integration test checks all nine table definitions and their keys, decimal
-weights, per-set reps, dates, historical snapshots, uniqueness constraints,
-foreign-key failures, ownership of stars, and session-delete cleanup.
+Provide these through secure environment configuration. Never put real values in committed files or documentation.
 
-Fixtures are written in one transaction and rolled back even on failure; no
-sample workouts are left in the app. Sequence numbers may have gaps after a
-rollback, which is normal. Run this only against development, never production.
-These checks do not replace the later assignment-required browser isolation and
-dashboard tests.
+| Variable | Purpose |
+|---|---|
+| `DATABASE_URL` | Development PostgreSQL connection used by the API, schema tooling, and database tests. |
+| `CLERK_SECRET_KEY` | Server-side Clerk credential; never expose it to browser code. |
+| `CLERK_PUBLISHABLE_KEY` | Clerk publishable key used by the server. |
+| `VITE_CLERK_PUBLISHABLE_KEY` | Matching browser publishable key, available when Vite starts/builds. |
+| `PORT` | Each service's listening port; API and frontend need different ports. |
+| `BASE_PATH` | Required by the frontend; `/` for this app's root mount. |
 
-## Publication
+In this Replit project, the managed services supply ports and routing, and Clerk is provisioned through Replit. Development and published Clerk accounts are separate. Use the Auth pane for managed authentication settings rather than replacing credentials.
 
-Published app: https://liftledgr-aidangilkerson.replit.app
+`SESSION_SECRET` is not required by this app's current Clerk authentication. The frontend also supports `VITE_CLERK_PROXY_URL` when a hosting configuration supplies a Clerk proxy; it is not required for the normal development setup.
 
-The published app includes features 1 and 2. Feature 3 is development-only
-until its PR is reviewed, merged, and the app is published again.
-The student must merge each feature pull request before publishing its update.
+### 3. Apply the development schema
 
-## Verification boundaries
+With `DATABASE_URL` pointing to your **development** database:
 
-Type checking, public-page rendering, responsive signup rendering, and signed-out
-API protection were checked.
+```sh
+pnpm --filter @workspace/db run push
+```
 
-A browser test using Clerk's supported programmatic sign-in also passed: the
-real account endpoint returned the linked account, a refresh retained the same
-identity and account ID, logout returned to the public homepage, and signed-out
-account requests and private-page visits were blocked. No app authentication
-bypass, mocked account response, or manually inserted application row was used.
+Review any proposed changes before accepting them. Do not use force-push commands or point this setup step at production.
 
-The user additionally confirmed manual signup and account verification,
-successful password-based login with the account linked, and remaining signed
-in after a refresh. These are user-reported manual results, not automated
-coverage of password entry or email delivery. Feature 1's PR was subsequently
-merged and published. The user confirmed Google sign-in linked their account
-on the live app.
-The assignment's workout-isolation and dashboard tests will be added when those
-features exist.
+### 4. Start the app in Replit
+
+Run the existing managed workflows:
+
+- **API Server:** `pnpm --filter @workspace/api-server run dev`
+- **Gym Workout Tracker:** `pnpm --filter @workspace/gym-tracker run dev`
+
+Open the Gym Workout Tracker Preview. Replit routes the frontend and `/api` through the same origin, which is required for cookie-based authentication. The design sandbox workflow is separate.
+
+### Outside Replit
+
+The repository does not include a standalone local reverse-proxy configuration. To run outside Replit, configure your own development PostgreSQL database, Clerk instance/allowed host, environment variables, and a same-origin reverse proxy. Start these in separate terminals:
+
+```sh
+# API
+PORT=8080 pnpm --filter @workspace/api-server run dev
+```
+
+```sh
+# Web interface
+PORT=5173 BASE_PATH=/ pnpm --filter @workspace/gym-tracker run dev
+```
+
+Route `/api` to Express on port 8080 and other paths (including Vite's development WebSocket) to port 5173. Visit the proxy's configured origin, not two unrelated frontend/API origins. The port assignments above are examples for local development, not replacements for Replit's managed routing. This external setup is documented from configuration; a fresh external-machine installation has not been verified.
+
+## Checks and builds
+
+Run from the repository root after installing dependencies:
+
+```sh
+# Full workspace TypeScript check
+pnpm run typecheck
+
+# Client helper/validation checks (no database)
+node --test artifacts/gym-tracker/test/*.test.mjs
+
+# API tests, including the two formal assignment tests (development DB required)
+pnpm --filter @workspace/api-server test
+
+# Database schema/constraint checks (development DB required)
+pnpm --filter @workspace/db test
+```
+
+Database-backed checks create synthetic fixtures and roll them back. Do not run them against production. Tests mock provider identity inside the test process; the running app has no test-login bypass.
+
+If changing the API contract, regenerate shared clients/types before checking:
+
+```sh
+pnpm --filter @workspace/api-spec run codegen
+```
+
+Targeted production builds:
+
+```sh
+pnpm --filter @workspace/api-server run build
+PORT=26029 BASE_PATH=/ pnpm --filter @workspace/gym-tracker run build
+```
+
+The API build writes `artifacts/api-server/dist/index.mjs`; the frontend build writes `artifacts/gym-tracker/dist/public/`. A build alone does not configure hosting or publish the app. Root `pnpm run build` also builds the separate sandbox, whose Vite configuration needs its own service environment; use managed builds or the targeted commands above rather than assuming an unconfigured root build is a complete launch command.
+
+## Assignment tests and evidence
+
+Both required tests were added in separate Issues and merged PRs after the original ten features:
+
+- **[Test A — data isolation, PR #26](https://github.com/aidangilkerson-cpu/gym-workout-tracker/pull/26):** User A has a session; User B has none. User B's history must remain empty. Removing the user filter made the test fail; restoring it passed. See [`prompts/test-a-data-isolation.md`](prompts/test-a-data-isolation.md).
+- **[Test B — dashboard calculation, PR #28](https://github.com/aidangilkerson-cpu/gym-workout-tracker/pull/28):** two sessions with reps 10/8/6 and 12/10/8 must yield **2 sessions, 6 sets, and 54 reps**. Counting sets instead of summing reps failed; restoration passed. See [`prompts/test-b-dashboard-calculation.md`](prompts/test-b-dashboard-calculation.md).
+
+Each PR includes the plain-English explanation, actual failing/passing screenshots, and a change that would break the test. Intentional breaks were isolated and never merged. These focused tests do not prove every authorization or dashboard behavior.
+
+The evidence-capture runners are documented in their logs; they need development-only fixtures and installed Chromium and write ignored output under `generated-artifacts/`. They are not normal application startup commands.
+
+## Verification and publishing boundaries
+
+The ten original features, the weight-arrow fix, and exercise notes are merged and published. Automated API/client/schema checks and signed-in Preview journeys supported development. The student also verified signup and live-app behavior. Detailed logs distinguish automated checks, student-reported results, simulated errors, and agent-caught corrections; Preview browser checks are not presented as published-site browser verification.
+
+The live URL above was confirmed from current deployment metadata while preparing this README. This documentation change does not publish or modify the running application. The student reviews and merges each PR before publishing application updates.
