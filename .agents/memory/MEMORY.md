@@ -2,3 +2,4 @@
 - [Retryable preference updates](retryable-preferences.md) — save the desired state rather than blindly toggling; lost acknowledgments must not reverse a favorite on retry.
 - [Browser test environment](browser-test-environment.md) — confirm the actual origin after programmatic Clerk login; a published-site request may redirect to Preview.
 - [Privacy mutation safety](privacy-mutation-safety.md) — rollbacks do not isolate reads; intentional ownership breaks need private tables and an isolated source copy.
+- [Exercise note scope](exercise-note-scope.md) — the user wants an exercise's editable previous note to carry across all their workouts, not stay within one preset.
