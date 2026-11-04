@@ -51,13 +51,13 @@ A personal gym training journal built for a school assignment, one feature at a 
 
 - Feature 1 is merged and published: signup, login, logout, and a protected linked-account area.
 - Feature 2 is merged and published; the nine production tables and their primary/foreign keys were verified read-only.
-- All ten features and the one-pound weight-arrow fix are merged and published; formal Test A is merged. Current approved scope is formal Test B only, under its separate Issue/branch. Stop before opening its PR.
+- All ten original features and the one-pound weight-arrow fix are merged and published; both formal tests are merged. Current approved scope is exercise notes only, under its separate Issue/branch. Stop before opening its PR. Final documentation remains paused.
 - Template editing is feature 8, per-set editing is feature 9, and repeat-session behavior is feature 10. Their underlying tables do not constitute those features.
 - Feature 10 must offer the previous weight, sets, and reps when starting a saved preset, clearly noting that those numbers are what was done "Last time" until the user fills in the new numbers.
   **Why:** the user requested: "yes plan that behavior and make it so it notes that is what you did last time until you fill in the new numbers".
 - Session drafts use independent rep strings and stable local keys for each set; weight belongs to the exercise, not the set. New exercises start with three blank rep rows. Adding/removing a row must preserve the other rows' values, and unrelated edits must preserve every saved rep.
   **Why:** the user wants different reps per set with one shared exercise weight; changing a count or an unrelated field must not flatten existing training results.
-- Repeating copies the historical session's exercise list/results and original version link into an independent draft. Its date defaults to today; notes start blank and the original star is not copied. Archived source workouts must be restored rather than silently dropping their provenance.
+- Repeating copies the historical session's exercise list/results and original version link into an independent draft. Its date defaults to today; whole-session notes start blank and the original star is not copied. Exercise notes use the latest owned cross-workout history, including an authoritative blank. Archived source workouts must be restored rather than silently dropping their provenance.
   **Why:** repeating means reusing training results for a new occasion, not recording the old occasion again or changing its history.
 - Preset suggestions come from the most recent saved session across that workout's version IDs, ordered by session date then ID descending. Match stable exercise IDs (and ordered occurrences for duplicates), not names or row positions. Keep the latest pinned template's list; unmatched exercises stay blank.
   **Why:** renamed/removed/new exercises and unrelated same-name workouts must not inherit misleading previous results. These suggestions mean the last session for this workout, not arbitrary older results from elsewhere.

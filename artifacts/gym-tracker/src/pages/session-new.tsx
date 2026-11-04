@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Link, useSearch } from 'wouter';
 import {
   useCreateSession, useGetWorkout, useGetSession, useListSessions, getGetWorkoutQueryKey, getListSessionsQueryKey, getGetSessionQueryKey, getGetDashboardQueryKey,
-  getGetCurrentUserQueryKey, type AppUser, type SessionInput, type WorkoutVersionRecord,
+  getGetCurrentUserQueryKey, useListExercises, getListExercisesQueryKey, type AppUser, type SessionInput, type WorkoutVersionRecord, type WorkoutSessionRecord, type DashboardExercise,
 } from '@workspace/api-client-react';
 import { SessionForm } from '@/components/session-form';
 import { latestWorkoutSession, repeatSessionSeed, templateSessionSeed, type SessionSeed } from '@/lib/session-seed';
@@ -12,6 +12,14 @@ import { AccountGate, ErrorPanel, PageFrame, SkeletonBlock, errorMessage, errorS
 function NewSessionForm({ templateVersion, seed, cancelTo }: { templateVersion?: WorkoutVersionRecord; seed?: SessionSeed; cancelTo?: string }) {
   const qc = useQueryClient();
   const create = useCreateSession();
+  const history = useListSessions(undefined, { query: { refetchOnMount: 'always', refetchOnWindowFocus: false, retry: false } });
+  const library = useListExercises({ query: { refetchOnMount: 'always', refetchOnWindowFocus: false, retry: false } });
+  const [noteContext, setNoteContext] = useState<{ history: WorkoutSessionRecord[]; library: DashboardExercise[] } | null>(null);
+  // Pin fresh owned data before mounting the form. Later refetches never replace a draft.
+  if (!noteContext && history.isFetchedAfterMount && !history.isFetching && !history.isError && history.data &&
+      library.isFetchedAfterMount && !library.isFetching && !library.isError && library.data) {
+    setNoteContext({ history: history.data, library: library.data });
+  }
   const submit = async (data: SessionInput) => {
     const owner = qc.getQueryData<AppUser>(getGetCurrentUserQueryKey())?.id;
     if (!owner) throw new Error('Your account could not be confirmed. Your draft is unchanged.');
@@ -22,9 +30,14 @@ function NewSessionForm({ templateVersion, seed, cancelTo }: { templateVersion?:
     qc.setQueryData(getGetSessionQueryKey(saved.id), saved);
     await qc.invalidateQueries({ queryKey: getListSessionsQueryKey() });
     await qc.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
+    await qc.invalidateQueries({ queryKey: getListExercisesQueryKey() });
     return saved;
   };
-  return <SessionForm mode="create" seed={seed} cancelTo={cancelTo ?? (templateVersion ? `/workouts/${templateVersion.workoutId}` : '/sessions')} onSubmit={submit} templateVersion={templateVersion} />;
+  if (!noteContext) {
+    if (history.isError || library.isError) return <PageFrame><ErrorPanel title="Your exercise notes did not load." message="Nothing was logged. Reload your history and exercise library before starting this draft." onRetry={() => { void history.refetch(); void library.refetch(); }} retrying={history.isFetching || library.isFetching} testid="status-note-history-error" /></PageFrame>;
+    return <PageFrame><SkeletonBlock testid="status-note-history-loading" rows={2} /></PageFrame>;
+  }
+  return <SessionForm mode="create" seed={seed} noteHistory={noteContext.history} exerciseLibrary={noteContext.library} cancelTo={cancelTo ?? (templateVersion ? `/workouts/${templateVersion.workoutId}` : '/sessions')} onSubmit={submit} templateVersion={templateVersion} />;
 }
 
 function TemplateUnavailable({ title, message, backTo = '/workouts', backLabel = 'Back to workouts' }: { title: string; message: string; backTo?: string; backLabel?: string }) {

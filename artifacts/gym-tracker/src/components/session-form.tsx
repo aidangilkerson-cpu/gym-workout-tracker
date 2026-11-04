@@ -9,6 +9,7 @@ import { SetEditor, refBadgeCls } from '@/components/set-editor';
 import type { SessionSeed } from '@/lib/session-seed';
 import { blankExercise, createSessionDraft, draftFromRecord, draftSnapshot, draftToInput, appendDraftSet, removeDraftSet, updateDraftSet, MAX_SETS, type SessionDraft as Draft, type ExerciseDraft } from '@/lib/session-draft';
 import { validateSessionDraft, sessionErrorsFromResponse, type FieldErrors } from '@/lib/session-validation';
+import { latestExerciseNotes, withPreviousNote, exerciseIdForName } from '@/lib/exercise-notes';
 
 const inputCls = 'h-12 w-full rounded-xl border border-input bg-secondary px-3.5 text-base text-foreground placeholder:text-muted-foreground/70 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 disabled:opacity-60 aria-invalid:border-destructive aria-invalid:focus:border-destructive aria-invalid:focus:ring-destructive/25';
 const labelCls = 'mb-1.5 block font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground';
@@ -23,11 +24,15 @@ type Props = {
   templateVersion?: WorkoutVersionRecord;
   /** Create-only prefill (repeat or last-time). Pinned on first render. */
   seed?: SessionSeed;
+  noteHistory?: WorkoutSessionRecord[];
+  exerciseLibrary?: { id: number; name: string }[];
   cancelTo: string;
   onSubmit: (input: SessionInput) => Promise<WorkoutSessionRecord>;
 };
 
-export function SessionForm({ mode, initial, templateVersion, seed, cancelTo, onSubmit }: Props) {
+export function SessionForm({ mode, initial, templateVersion, seed, noteHistory = [], exerciseLibrary = [], cancelTo, onSubmit }: Props) {
+  const previousNotes = useRef(latestExerciseNotes(noteHistory)).current;
+  const library = useRef(exerciseLibrary).current;
   // Keep provenance and the seed together, even if a parent query refreshes.
   const pinnedTemplate = useRef(templateVersion).current;
   const pinnedSeed = useRef(mode === 'create' ? seed : undefined).current;
@@ -48,7 +53,10 @@ export function SessionForm({ mode, initial, templateVersion, seed, cancelTo, on
     reps: new Set([...t.reps, ...exercise.sets.map(set => set.key)]),
   }));
   const initialDraft = useMemo<Draft>(
-    () => (initial ? draftFromRecord(initial) : pinnedSeed?.draft ?? createSessionDraft(pinnedTemplate)),
+    () => {
+      const draft = initial ? draftFromRecord(initial) : pinnedSeed?.draft ?? createSessionDraft(pinnedTemplate);
+      return mode === 'edit' ? draft : { ...draft, exercises: draft.exercises.map(ex => withPreviousNote(ex, previousNotes)) };
+    },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
@@ -214,7 +222,16 @@ export function SessionForm({ mode, initial, templateVersion, seed, cancelTo, on
                         required
                         maxLength={120}
                         value={ex.exerciseName}
-                        onChange={(e) => { touchExercise(ex); patchEx(ex.key, { exerciseName: e.target.value, exerciseId: undefined }); }}
+                        list="session-exercise-library"
+                        onChange={(e) => {
+                          touchExercise(ex);
+                          const exerciseName = e.target.value;
+                          const exerciseId = exerciseIdForName(exerciseName, library);
+                          mapEx(ex.key, old => {
+                            const updated = { ...old, exerciseName, exerciseId };
+                            return mode === 'create' ? withPreviousNote(updated, previousNotes) : updated;
+                          });
+                        }}
                         placeholder="Bench press"
                         className={inputCls}
                         data-testid={`input-exercise-name-${i}`}
@@ -233,6 +250,28 @@ export function SessionForm({ mode, initial, templateVersion, seed, cancelTo, on
                       )}
                       <FieldError id={`${id}-weight-error`} message={errors[`${path}.weightLb`]} />
                     </div>
+                  </div>
+                  <div className="mt-4">
+                    <label htmlFor={`${id}-notes`} className={labelCls}>Exercise note (optional)</label>
+                    <textarea
+                      id={`${id}-notes`}
+                      rows={2}
+                      maxLength={5000}
+                      value={ex.notes}
+                      onChange={e => patchEx(ex.key, { notes: e.target.value, noteSource: undefined, noteEdited: true })}
+                      placeholder="Seat setting, technique cues, or what to try next time."
+                      className={`${inputCls} h-auto py-3`}
+                      data-testid={`input-exercise-notes-${i}`}
+                      aria-invalid={Boolean(errors[`${path}.notes`])}
+                      aria-describedby={[`${id}-notes-help`, errors[`${path}.notes`] ? `${id}-notes-error` : null].filter(Boolean).join(' ')}
+                    />
+                    <p id={`${id}-notes-help`} className="mt-1.5 text-xs text-muted-foreground" data-testid={`text-exercise-notes-source-${i}`}>
+                      {ex.noteSource
+                        ? `Last time · ${formatDate(ex.noteSource.date)} · ${ex.noteSource.workoutName}${ex.notes ? '' : ' · No note saved'}`
+                        : mode === 'edit' ? 'Saved with this session. Other sessions keep their own notes.'
+                        : 'Saved with this session and carried across your workouts for this exercise.'}
+                    </p>
+                    <FieldError id={`${id}-notes-error`} message={errors[`${path}.notes`]} />
                   </div>
                   <SetEditor
                     exercise={ex}
@@ -255,6 +294,9 @@ export function SessionForm({ mode, initial, templateVersion, seed, cancelTo, on
               );
             })}
           </ol>
+          <datalist id="session-exercise-library">
+            {library.map(ex => <option key={ex.id} value={ex.name} />)}
+          </datalist>
 
           <button
             type="button"

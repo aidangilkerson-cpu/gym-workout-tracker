@@ -264,6 +264,7 @@ export const ListSessionsResponseItem = zod.object({
   "id": zod.number().int(),
   "exerciseId": zod.number().int(),
   "exerciseName": zod.string(),
+  "notes": zod.string().nullable(),
   "weightLb": zod.number(),
   "position": zod.number().int(),
   "sets": zod.array(zod.object({
@@ -289,6 +290,8 @@ export const createSessionBodyNotesMax = 5000;
 
 export const createSessionBodyExercisesItemExerciseNameMax = 120;
 
+export const createSessionBodyExercisesItemNotesMax = 5000;
+
 export const createSessionBodyExercisesItemWeightLbMin = 0;
 export const createSessionBodyExercisesItemWeightLbMax = 99999999.99;
 export const createSessionBodyExercisesItemWeightLbMultipleOf = 0.01;
@@ -310,6 +313,7 @@ export const CreateSessionBody = zod.object({
   "exercises": zod.array(zod.object({
   "exerciseId": zod.number().int().min(1).optional(),
   "exerciseName": zod.string().min(1).max(createSessionBodyExercisesItemExerciseNameMax),
+  "notes": zod.string().max(createSessionBodyExercisesItemNotesMax).nullish().describe('Exercise-specific note. Omission preserves the existing note when editing; null or blank explicitly clears it.'),
   "weightLb": zod.number().min(createSessionBodyExercisesItemWeightLbMin).max(createSessionBodyExercisesItemWeightLbMax).multipleOf(createSessionBodyExercisesItemWeightLbMultipleOf),
   "sets": zod.array(zod.object({
   "reps": zod.number().int().min(createSessionBodyExercisesItemSetsItemRepsMin).max(createSessionBodyExercisesItemSetsItemRepsMax)
@@ -328,6 +332,7 @@ export const CreateSessionResponse = zod.object({
   "id": zod.number().int(),
   "exerciseId": zod.number().int(),
   "exerciseName": zod.string(),
+  "notes": zod.string().nullable(),
   "weightLb": zod.number(),
   "position": zod.number().int(),
   "sets": zod.array(zod.object({
@@ -360,6 +365,7 @@ export const GetSessionResponse = zod.object({
   "id": zod.number().int(),
   "exerciseId": zod.number().int(),
   "exerciseName": zod.string(),
+  "notes": zod.string().nullable(),
   "weightLb": zod.number(),
   "position": zod.number().int(),
   "sets": zod.array(zod.object({
@@ -391,6 +397,8 @@ export const updateSessionBodyNotesMax = 5000;
 
 export const updateSessionBodyExercisesItemExerciseNameMax = 120;
 
+export const updateSessionBodyExercisesItemNotesMax = 5000;
+
 export const updateSessionBodyExercisesItemWeightLbMin = 0;
 export const updateSessionBodyExercisesItemWeightLbMax = 99999999.99;
 export const updateSessionBodyExercisesItemWeightLbMultipleOf = 0.01;
@@ -412,6 +420,7 @@ export const UpdateSessionBody = zod.object({
   "exercises": zod.array(zod.object({
   "exerciseId": zod.number().int().min(1).optional(),
   "exerciseName": zod.string().min(1).max(updateSessionBodyExercisesItemExerciseNameMax),
+  "notes": zod.string().max(updateSessionBodyExercisesItemNotesMax).nullish().describe('Exercise-specific note. Omission preserves the existing note when editing; null or blank explicitly clears it.'),
   "weightLb": zod.number().min(updateSessionBodyExercisesItemWeightLbMin).max(updateSessionBodyExercisesItemWeightLbMax).multipleOf(updateSessionBodyExercisesItemWeightLbMultipleOf),
   "sets": zod.array(zod.object({
   "reps": zod.number().int().min(updateSessionBodyExercisesItemSetsItemRepsMin).max(updateSessionBodyExercisesItemSetsItemRepsMax)
@@ -430,6 +439,7 @@ export const UpdateSessionResponse = zod.object({
   "id": zod.number().int(),
   "exerciseId": zod.number().int(),
   "exerciseName": zod.string(),
+  "notes": zod.string().nullable(),
   "weightLb": zod.number(),
   "position": zod.number().int(),
   "sets": zod.array(zod.object({
@@ -479,6 +489,7 @@ export const SetSessionStarResponse = zod.object({
   "id": zod.number().int(),
   "exerciseId": zod.number().int(),
   "exerciseName": zod.string(),
+  "notes": zod.string().nullable(),
   "weightLb": zod.number(),
   "position": zod.number().int(),
   "sets": zod.array(zod.object({

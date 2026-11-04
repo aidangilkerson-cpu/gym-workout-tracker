@@ -13,6 +13,7 @@ export const sessionExercisesTable = pgTable("session_exercises", {
   // A session's exercise holds one shared weight; individual sets hold only reps.
   weightLb: numeric("weight_lb", { precision: 10, scale: 2, mode: "number" }).notNull(),
   position: integer("position").notNull(),
+  notes: text("notes"),
 }, (table) => [
   unique("session_exercises_position_unique").on(table.sessionId, table.position),
   index("session_exercises_exercise_idx").on(table.exerciseId),

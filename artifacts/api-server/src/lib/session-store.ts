@@ -74,7 +74,7 @@ export async function setOwnedSessionStar(database: SessionDatabase, userId: str
   });
 }
 
-async function saveExercises(tx: Transaction, userId: string, sessionId: number, input: SessionInput) {
+async function saveExercises(tx: Transaction, userId: string, sessionId: number, input: SessionInput, priorNotes: Map<number, (string | null)[]>) {
   for (const [position, entry] of input.exercises.entries()) {
     let exerciseId = entry.exerciseId;
     if (exerciseId !== undefined) {
@@ -98,9 +98,13 @@ async function saveExercises(tx: Transaction, userId: string, sessionId: number,
         exerciseId = created.id;
       }
     }
+    // Older open clients may omit the new field. Preserve that occurrence's note;
+    // only an explicit null/blank clears it. Never preserve across different IDs.
+    const priorNote = priorNotes.get(exerciseId)?.shift() ?? null;
+    const note = entry.notes === undefined ? priorNote : entry.notes;
     const [saved] = await tx.insert(sessionExercisesTable).values({
       sessionId, exerciseId, exerciseName: entry.exerciseName.trim(),
-      weightLb: entry.weightLb, position,
+      weightLb: entry.weightLb, position, notes: note?.trim() ? note : null,
     }).returning({ id: sessionExercisesTable.id });
     await tx.insert(setsTable).values(entry.sets.map((set, index) => ({
       sessionExerciseId: saved.id, setNumber: index + 1, reps: set.reps,
@@ -117,6 +121,7 @@ export async function saveOwnedSession(
     await tx.select({ id: usersTable.id }).from(usersTable)
       .where(eq(usersTable.id, userId)).for("update");
     let sessionId = id;
+    const priorNotes = new Map<number, (string | null)[]>();
     if (sessionId !== undefined) {
       const [owned] = await tx.select({ id: sessionsTable.id, workoutVersionId: sessionsTable.workoutVersionId }).from(sessionsTable)
         .where(and(eq(sessionsTable.id, sessionId), eq(sessionsTable.userId, userId)))
@@ -128,6 +133,15 @@ export async function saveOwnedSession(
       await tx.update(sessionsTable).set({
         workoutName: input.workoutName.trim(), date: input.date, notes: input.notes,
       }).where(and(eq(sessionsTable.id, sessionId), eq(sessionsTable.userId, userId)));
+      const previous = await tx.select({
+        exerciseId: sessionExercisesTable.exerciseId, notes: sessionExercisesTable.notes,
+      }).from(sessionExercisesTable).where(eq(sessionExercisesTable.sessionId, sessionId))
+        .orderBy(asc(sessionExercisesTable.position));
+      for (const entry of previous) {
+        const notes = priorNotes.get(entry.exerciseId) ?? [];
+        notes.push(entry.notes);
+        priorNotes.set(entry.exerciseId, notes);
+      }
       // All replacement work is one transaction: errors retain the old session.
       await tx.delete(sessionExercisesTable).where(eq(sessionExercisesTable.sessionId, sessionId));
     } else {
@@ -146,7 +160,7 @@ export async function saveOwnedSession(
       }).returning({ id: sessionsTable.id });
       sessionId = created.id;
     }
-    await saveExercises(tx, userId, sessionId, input);
+    await saveExercises(tx, userId, sessionId, input, priorNotes);
     return getOwnedSession(tx, userId, sessionId);
   });
 }

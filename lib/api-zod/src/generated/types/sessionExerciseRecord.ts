@@ -11,6 +11,8 @@ export interface SessionExerciseRecord {
   id: number;
   exerciseId: number;
   exerciseName: string;
+  /** @nullable */
+  notes: string | null;
   weightLb: number;
   position: number;
   sets: SessionSetRecord[];
