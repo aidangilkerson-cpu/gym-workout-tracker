@@ -51,7 +51,7 @@ A personal gym training journal built for a school assignment, one feature at a 
 
 - Feature 1 is merged and published: signup, login, logout, and a protected linked-account area.
 - Feature 2 is merged and published; the nine production tables and their primary/foreign keys were verified read-only.
-- All ten original features, the one-pound weight-arrow fix, and exercise notes are merged and published; both formal tests, final app documentation, and Reflection 1 are merged. Current approved scope is the stranger-test workout draft recovery fix only, under its Issue/branch. Stop before opening its PR. Reflection 2 writing follows the actual fix and evidence; do not invent observations or fix the two smaller reported concerns in this branch.
+- All ten original features, the one-pound weight-arrow fix, exercise notes, and the stranger-test draft recovery fix are merged and published; both formal tests, final app documentation, and Reflection 1 are merged. Current approved scope is saving Reflection 2 and its evidence only, under its documentation Issue/branch. Stop before opening its PR. Keep the two smaller reported usability concerns deferred; after merge, check remaining submission instructions without assuming the assignment has been submitted.
 - Template editing is feature 8, per-set editing is feature 9, and repeat-session behavior is feature 10. Their underlying tables do not constitute those features.
 - Feature 10 must offer the previous weight, sets, and reps when starting a saved preset, clearly noting that those numbers are what was done "Last time" until the user fills in the new numbers.
   **Why:** the user requested: "yes plan that behavior and make it so it notes that is what you did last time until you fill in the new numbers".
